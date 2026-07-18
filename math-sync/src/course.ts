@@ -58,10 +58,12 @@ export function lookupCourse(pack: CoursePack, query: string): string {
       .map((l) => l.title)
       .join("; ")}.`;
   }
-  // Return the top couple of lessons, capped to avoid blowing the context window.
+  // Return the top couple of lessons, capped hard: the model's context is 4096
+  // tokens and every round re-reads this — 3500 chars (~900 tokens) leaves room
+  // for the system prompt, history, and the answer.
   return ranked
     .slice(0, 2)
     .map((l) => `## From ${l.title}\n\n${stripForModel(l.content)}`)
     .join("\n\n---\n\n")
-    .slice(0, 6000);
+    .slice(0, 3500);
 }

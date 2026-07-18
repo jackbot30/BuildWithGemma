@@ -134,6 +134,13 @@
       <div id="fc-deck-list">No decks yet.</div>
     </section>
 
+    <!-- live turn progress (feat/progress): stage + round + elapsed clock -->
+    <div id="progress-strip" hidden aria-live="polite">
+      <span class="spinner"></span>
+      <span id="progress-stage">reading your question…</span>
+      <span id="progress-round" class="muted"></span>
+      <span id="progress-clock" class="muted"></span>
+    </div>
     <form id="composer">
       <input id="input" type="text" autocomplete="off" placeholder="e.g. Solve x^2 - 5x + 6 = 0" />
       <button id="send" type="submit">Ask</button>

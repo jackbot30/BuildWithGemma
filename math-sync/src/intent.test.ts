@@ -49,3 +49,24 @@ describe("detectComposerIntent — neither", () => {
     });
   }
 });
+
+// speed fix: big courses must not dump 100 titles into every turn's system prompt.
+import { courseSummaryLine } from "./agent.ts";
+import type { CoursePack } from "./course.ts";
+
+describe("courseSummaryLine", () => {
+  const lesson = (id: string, title: string) => ({ id, title, content: "" });
+  test("small course lists titles", () => {
+    const c = { dir: ".", syllabus: "", lessons: [lesson("a", "A"), lesson("b", "B")] };
+    expect(courseSummaryLine(c)).toContain("A; B");
+  });
+  test("big course compacts to unit titles + count", () => {
+    const lessons: Array<{ id: string; title: string; content: string }> = [];
+    for (let u = 1; u <= 11; u++) for (let n = 1; n <= 9; n++) lessons.push(lesson(`${u}-${n}-x`, `${u}.${n} X`));
+    const syllabus = Array.from({ length: 11 }, (_, i) => `## Unit ${i + 1}: U${i + 1}`).join("\n");
+    const line = courseSummaryLine({ dir: ".", syllabus, lessons });
+    expect(line).toContain("99 lessons");
+    expect(line).toContain("Unit 11: U11");
+    expect(line.length).toBeLessThan(600);
+  });
+});

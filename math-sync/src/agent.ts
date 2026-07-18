@@ -9,6 +9,7 @@
 
 import { streamChat, MODEL, type OllamaMessage, type ToolCall } from "./ollama.ts";
 import type { CoursePack } from "./course.ts";
+import { buildOutline } from "./outline.ts";
 import { chatToolSchemas, dispatchTool, type ToolContext, type PlotSpec } from "./tools.ts";
 import type { QuizClientView } from "./quiz.ts"; // feat/quiz
 import type { FlashcardDeck } from "./flashcards.ts"; // feat/flashcards
@@ -20,6 +21,7 @@ export type AgentEvent =
   | { type: "plot"; spec: PlotSpec }
   | { type: "quiz"; quiz: QuizClientView } // feat/quiz — no expected answers, ever
   | { type: "flashcards"; deck: FlashcardDeck } // feat/flashcards
+  | { type: "round"; round: number; cap: number } // progress marker for the UI
   | { type: "done"; text: string }
   | { type: "trace"; trace: TurnTrace }
   | { type: "error"; message: string; detail?: string };
@@ -29,11 +31,22 @@ const MAX_ROUNDS = 5;
 // Unset (the normal case, incl. prod/demo) keeps the shipped default of 1024.
 const NUM_PREDICT = Number(process.env.MATH_SYNC_NUM_PREDICT ?? "") || 1024;
 
+export function courseSummaryLine(course: CoursePack): string {
+  // Small course: list titles (helps grounding). Big course: unit titles + count —
+  // 100 titles is ~1000 tokens re-read EVERY round on a CPU-bound model.
+  if (course.lessons.length <= 12) {
+    return `Loaded course lessons: ${course.lessons.map((l) => l.title).join("; ") || "(none)"}.`;
+  }
+  const units = buildOutline(course.syllabus, course.lessons)
+    .map((u) => u.title)
+    .join("; ");
+  return `Loaded course: ${course.lessons.length} lessons across: ${units}. Use lookup_course to fetch any lesson.`;
+}
+
 function systemPrompt(course: CoursePack): string {
-  const lessons = course.lessons.map((l) => l.title).join("; ");
   return [
     "You are Math Sync, an offline math tutor for THIS course only.",
-    `Loaded course lessons: ${lessons || "(none)"}.`,
+    courseSummaryLine(course),
     "Rules (in priority order):",
     "1. ONLY answer from the loaded course. If asked something outside this course, say it's outside this course — do not guess.",
     "2. ALWAYS call lookup_course before answering any math question — never answer from memory.",
@@ -134,6 +147,7 @@ export async function runAgent(
   let lastText = "";
   try {
     for (let round = 0; round < MAX_ROUNDS; round++) {
+      emit({ type: "round", round: round + 1, cap: MAX_ROUNDS });
       const { text, toolCalls } = await runTurn(messages, emit, trace);
       if (text.trim()) lastText = text;
 

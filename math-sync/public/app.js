@@ -100,9 +100,50 @@ function addPlot(spec) {
 /** Set while a chat turn is streaming; lets the Stop button abort the fetch. */
 let activeController = null;
 
+// --- live turn progress strip (feat/progress): stage + round + elapsed clock ---
+const progressStrip = document.getElementById("progress-strip");
+const progressStage = document.getElementById("progress-stage");
+const progressRound = document.getElementById("progress-round");
+const progressClock = document.getElementById("progress-clock");
+let progressTimer = null;
+
+function progressStart() {
+  if (!progressStrip) return;
+  const t0 = Date.now();
+  progressStage.textContent = "reading your question…";
+  progressRound.textContent = "";
+  progressClock.textContent = "0s";
+  progressStrip.hidden = false;
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    progressClock.textContent = `${Math.round((Date.now() - t0) / 1000)}s`;
+  }, 1000);
+}
+function progressSet(stage, round) {
+  if (!progressStrip) return;
+  if (stage) progressStage.textContent = stage;
+  if (round) progressRound.textContent = round;
+}
+function progressEnd() {
+  if (!progressStrip) return;
+  progressStrip.hidden = true;
+  clearInterval(progressTimer);
+  progressTimer = null;
+}
+
+const TOOL_STAGE = {
+  lookup_course: "looking up the course…",
+  verify_solution: "verifying the solution by substitution…",
+  calculate: "calculating…",
+  plot: "drawing the graph…",
+  create_quiz: "composing your quiz…",
+  create_flashcards: "composing your flashcards…",
+};
+
 async function ask(message) {
   history.push({ role: "user", content: message });
   addBubble("user").textContent = message;
+  progressStart(); // feat/progress — cleared in the submit handler's finally
 
   const bubble = addBubble("assistant");
   bubble.innerHTML = '<span class="spinner"></span>';
@@ -205,15 +246,20 @@ async function ask(message) {
 
   function handleEvent(ev) {
     switch (ev.type) {
+      case "round": // feat/progress
+        progressSet("thinking…", `round ${ev.round}/${ev.cap}`);
+        break;
       case "delta":
         if (!started) {
           bubble.innerHTML = "";
           started = true;
         }
+        progressSet("writing the answer…");
         answer += ev.text;
         scheduleRender();
         break;
       case "tool":
+        if (ev.phase === "call") progressSet(TOOL_STAGE[ev.name] ?? `using ${ev.name}…`); // feat/progress
         if (ev.name === "verify_solution" && ev.phase === "result") {
           const ok = ev.detail.startsWith("VERIFIED");
           const v = document.createElement("div");
@@ -299,6 +345,7 @@ form.addEventListener("submit", async (e) => {
     // Always restore the composer — abort/network error must never leave it stuck.
     activeController = null;
     setStreaming(false);
+    progressEnd(); // feat/progress
     input.focus();
   }
 });
