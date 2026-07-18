@@ -15,7 +15,9 @@ import { runAgent, type AgentEvent } from "./src/agent.ts";
 import { prewarm, MODEL, type OllamaMessage } from "./src/ollama.ts";
 import { checkAnswer, checkSet } from "./src/checker.ts";
 
-const PORT = 8710;
+// PORT env override so a second instance can run alongside a live demo (e.g. for
+// testing). Defaults to 8710 — the port the app + shortcut expect.
+const PORT = Number(process.env.PORT) || 8710;
 const HOST = "127.0.0.1";
 const PUBLIC = resolve(import.meta.dir, "public");
 const IDLE_EXIT_MS = 30_000;
@@ -109,6 +111,15 @@ async function handleEval(): Promise<Response> {
   return json({ model: MODEL, problems: data.problems.length, selfCheck });
 }
 
+async function handleEvalResults(): Promise<Response> {
+  // Serve the persisted eval runs for the Evidence tab. Written by `bun run eval`;
+  // if it was never run, hand back an empty set rather than 404 (the tab renders
+  // "no runs yet"). No run-from-the-UI here on purpose — see docs/decisions.
+  const file = Bun.file(resolve(import.meta.dir, "eval/results.json"));
+  if (!(await file.exists())) return json({ runs: [] });
+  return json((await file.json()) as unknown);
+}
+
 const server = Bun.serve({
   hostname: HOST,
   port: PORT,
@@ -132,6 +143,7 @@ const server = Bun.serve({
       });
     }
     if (path === "/api/chat" && req.method === "POST") return handleChat(req);
+    if (path === "/api/eval/results") return handleEvalResults();
     if (path === "/api/eval") return handleEval();
 
     // Static files, contained to public/.
