@@ -105,7 +105,56 @@ const progressStrip = document.getElementById("progress-strip");
 const progressStage = document.getElementById("progress-stage");
 const progressRound = document.getElementById("progress-round");
 const progressClock = document.getElementById("progress-clock");
+const progressTps = document.getElementById("progress-tps");
 let progressTimer = null;
+
+// --- live tok/s estimate: the exact number only arrives in the end-of-turn trace
+// event, so estimate from delta count / elapsed while the model writes, then snap
+// to the exact value when the trace lands. Honest: "~" on the estimate, none on exact.
+let tpsCount = 0;
+let tpsFirstAt = null;
+let tpsTimer = null;
+let tpsSnapped = false;
+
+function tpsReset() {
+  tpsCount = 0;
+  tpsFirstAt = null;
+  tpsSnapped = false;
+  clearInterval(tpsTimer);
+  tpsTimer = null;
+  if (progressTps) progressTps.textContent = "";
+}
+
+function tpsOnDelta() {
+  if (!progressTps) return;
+  tpsCount++;
+  if (tpsFirstAt === null) {
+    tpsFirstAt = Date.now();
+    clearInterval(tpsTimer);
+    tpsTimer = setInterval(tpsRender, 500); // update at most ~2x/sec
+  }
+}
+
+function tpsRender() {
+  if (!progressTps || tpsSnapped || tpsFirstAt === null) return;
+  const elapsed = (Date.now() - tpsFirstAt) / 1000;
+  if (elapsed < 2) {
+    progressTps.textContent = ""; // too little data — a junk number would mislead
+    return;
+  }
+  const est = tpsCount / elapsed;
+  progressTps.textContent = `· ~${est.toFixed(1)} tok/s · on-device`;
+}
+
+/** Snap to the exact per-turn tok/s from the trace event, if the strip's still up. */
+function tpsSnap(tokensPerSec) {
+  if (!progressTps || !progressStrip || progressStrip.hidden) return;
+  if (typeof tokensPerSec !== "number" || !Number.isFinite(tokensPerSec)) return;
+  tpsSnapped = true;
+  clearInterval(tpsTimer);
+  tpsTimer = null;
+  progressTps.textContent = `· ${tokensPerSec.toFixed(1)} tok/s · on-device`;
+}
 
 function progressStart() {
   if (!progressStrip) return;
@@ -114,6 +163,7 @@ function progressStart() {
   progressRound.textContent = "";
   progressClock.textContent = "0s";
   progressStrip.hidden = false;
+  tpsReset();
   clearInterval(progressTimer);
   progressTimer = setInterval(() => {
     progressClock.textContent = `${Math.round((Date.now() - t0) / 1000)}s`;
@@ -129,6 +179,7 @@ function progressEnd() {
   progressStrip.hidden = true;
   clearInterval(progressTimer);
   progressTimer = null;
+  tpsReset();
 }
 
 const TOOL_STAGE = {
@@ -255,6 +306,7 @@ async function ask(message) {
           started = true;
         }
         progressSet("writing the answer…");
+        tpsOnDelta(); // feat/progress — live tok/s estimate
         answer += ev.text;
         scheduleRender();
         break;
@@ -282,6 +334,7 @@ async function ask(message) {
         break;
       case "trace":
         // Full per-turn trace (see trace.js) — the "What Gemma did" drawer.
+        tpsSnap(ev.trace?.tokensPerSec); // feat/progress — exact tok/s, snap if strip's still up
         window.msTrace?.attachDrawer(bubble, ev.trace);
         break;
       case "plot":

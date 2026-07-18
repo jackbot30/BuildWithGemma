@@ -318,6 +318,7 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 #progress-strip[hidden] { display: none; }
 #progress-stage { color: var(--text); }
 #progress-round { font-variant-numeric: tabular-nums; }
+#progress-tps { font-variant-numeric: tabular-nums; } /* feat/progress: live tok/s */
 #progress-clock { margin-left: auto; font-variant-numeric: tabular-nums; }
 
 /* --- feat/srs: study mode --- */
