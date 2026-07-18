@@ -15,6 +15,23 @@
 
 import type { Lesson } from "./course.ts";
 
+/** Model-facing cleanup for lookup results: markdown image refs are pure wasted
+ * tokens on a CPU-bound model (~4s per 100 tokens) and noise in the Trace tab.
+ * Strip inline images, drop now-empty lines' duplicates (collapse blank runs). */
+export function stripForModel(md: string): string {
+  const lines: string[] = [];
+  for (const raw of md.split("\n")) {
+    const stripped = raw.replace(/!\[[^\]]*\]\([^)]*\)/g, "").trimEnd();
+    // A line that only held an image disappears entirely (no blank left behind).
+    if (stripped === "" && raw.trim() !== "") continue;
+    lines.push(stripped);
+  }
+  return lines
+    .filter((line, i, arr) => !(line === "" && arr[i - 1] === ""))
+    .join("\n")
+    .trim();
+}
+
 export interface ScoredLesson {
   id: string;
   title: string;

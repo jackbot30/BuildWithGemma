@@ -188,3 +188,16 @@ describe("scoreLessons — S3 retrieval fix", () => {
     expect(scoreLessons(SAMPLE, "trigonometry")).toHaveLength(0);
   });
 });
+
+// fix-2: model-facing lookup text must not carry image refs (wasted CPU tokens).
+import { stripForModel } from "./lookup.ts";
+
+describe("stripForModel", () => {
+  test("removes markdown image lines and collapses blank runs", () => {
+    const md = "# T\n\n![](assets/a-1234.jpg)\n\n\n\nBody text\n![alt text](assets/b.png)\nmore";
+    expect(stripForModel(md)).toBe("# T\n\nBody text\nmore");
+  });
+  test("leaves normal links and text alone", () => {
+    expect(stripForModel("See [link](x.md) and $x^2$")).toBe("See [link](x.md) and $x^2$");
+  });
+});

@@ -9,7 +9,7 @@
 import { resolve, join, basename } from "node:path";
 import { readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { scoreLessons } from "./lookup.ts";
+import { scoreLessons, stripForModel } from "./lookup.ts";
 
 export interface Lesson {
   id: string; // filename without extension, e.g. "01-linear-equations"
@@ -61,7 +61,7 @@ export function lookupCourse(pack: CoursePack, query: string): string {
   // Return the top couple of lessons, capped to avoid blowing the context window.
   return ranked
     .slice(0, 2)
-    .map((l) => `## From ${l.title}\n\n${l.content}`)
+    .map((l) => `## From ${l.title}\n\n${stripForModel(l.content)}`)
     .join("\n\n---\n\n")
     .slice(0, 6000);
 }
