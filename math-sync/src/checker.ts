@@ -16,6 +16,10 @@ export interface CheckResult {
   variables: string[];
   pointsTested: Array<Record<string, number>>;
   reason?: string;
+  /** Set to true when the match is approximate (within 0.1% relative tolerance)
+   *  rather than exact/symbolic. Callers that ignore this field see equal:true
+   *  as before — grading semantics are unchanged for existing callers. */
+  approx?: boolean;
 }
 
 /** Names that resolve to functions/constants, not free variables. */
@@ -41,9 +45,22 @@ function freeVariables(node: MathNode): string[] {
   return [...names];
 }
 
+/**
+ * Normalize JS-isms so student-typed answers parse correctly in mathjs.
+ * Applied to both answer and expected before any parsing.
+ */
+function normalizeJsIsms(src: string): string {
+  return src
+    .replace(/Math\.PI/g, "pi")
+    .replace(/Math\.E(?![a-zA-Z])/g, "e")
+    .replace(/Math\.sqrt\(/g, "sqrt(")
+    .replace(/Math\.abs\(/g, "abs(")
+    .replace(/\*\*/g, "^");
+}
+
 /** Strip a leading `y =` / `f(x) =` and normalize `**` → `^`. */
 function normalize(src: string): string {
-  const s = src.trim().replace(/\*\*/g, "^");
+  const s = normalizeJsIsms(src.trim());
   const parts = s.split("=");
   return parts.length === 2 ? (parts[1] ?? s).trim() : s;
 }
@@ -59,19 +76,38 @@ export interface CheckOpts {
   maxTries?: number;
 }
 
+/** 0.1% relative tolerance for the approximate tier. */
+const APPROX_TOL = 1e-3;
+
+/** True when x and y agree within relTol relative tolerance. */
+function approxClose(x: number, y: number, relTol: number): boolean {
+  const denom = Math.max(Math.abs(x), Math.abs(y), 1);
+  return Math.abs(x - y) / denom <= relTol;
+}
+
 export function checkAnswer(exprRaw: string, expectedRaw: string, opts: CheckOpts = {}): CheckResult {
   const samples = opts.samples ?? 5;
   const tol = opts.tol ?? 1e-6;
   const range = opts.range ?? 10;
   const maxTries = opts.maxTries ?? 40;
 
+  // S2c: explicit empty-answer failure (never a silent INCORRECT with no reason).
+  if (exprRaw.trim() === "") {
+    return { equal: false, variables: [], pointsTested: [], reason: "empty answer" };
+  }
+
   let a: MathNode;
   let b: MathNode;
   try {
+    // S2c: parse answer first so a bad expected gives a distinct reason.
     a = math.parse(normalize(exprRaw));
+  } catch (e) {
+    return { equal: false, variables: [], pointsTested: [], reason: `parse error (answer): ${String(e)}` };
+  }
+  try {
     b = math.parse(normalize(expectedRaw));
   } catch (e) {
-    return { equal: false, variables: [], pointsTested: [], reason: `parse error: ${String(e)}` };
+    return { equal: false, variables: [], pointsTested: [], reason: `parse error (expected): ${String(e)}` };
   }
 
   const vars = [...new Set([...freeVariables(a), ...freeVariables(b)])].sort();
@@ -87,7 +123,14 @@ export function checkAnswer(exprRaw: string, expectedRaw: string, opts: CheckOpt
       const va: unknown = ca.evaluate({});
       const vb: unknown = cb.evaluate({});
       if (isFiniteReal(va) && isFiniteReal(vb)) {
-        return { equal: relClose(va, vb), variables: [], pointsTested: [{}] };
+        if (relClose(va, vb)) {
+          return { equal: true, variables: [], pointsTested: [{}] };
+        }
+        // S2b: approximate tier — within 0.1% relative, but not exact.
+        if (approxClose(va, vb, APPROX_TOL)) {
+          return { equal: true, approx: true, variables: [], pointsTested: [{}] };
+        }
+        return { equal: false, variables: [], pointsTested: [{}] };
       }
       const eq = math.equal(va as Parameters<typeof math.equal>[0], vb as Parameters<typeof math.equal>[1]);
       return { equal: eq === true, variables: [], pointsTested: [{}] };
