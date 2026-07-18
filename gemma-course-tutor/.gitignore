@@ -37,3 +37,7 @@ vectors.json
 
 # Model weights (Gemma runs via Ollama; never vendored here)
 *.gguf
+
+# Local server run logs
+serve.log
+serve.err

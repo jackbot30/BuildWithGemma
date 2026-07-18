@@ -3,7 +3,9 @@
 On-device AI built with Gemma for the *Just Build: Gemma Hackathon* (Jul 17–18, 2026).
 Everything here runs locally via **Ollama** — no cloud inference, works with the network off.
 
-This repository holds two related apps:
+This repository holds two related apps — **`math-sync/` is the headline demo**;
+`gemma-course-tutor/` is the evaluation annex that proves the approach on a real
+course (see [`docs/decisions/hackathon-log.md`](docs/decisions/hackathon-log.md)):
 
 ## [`math-sync/`](math-sync/) — offline Gemma math tutor
 Load a course pack once, then it teaches, graphs, and **checks its own work** fully
