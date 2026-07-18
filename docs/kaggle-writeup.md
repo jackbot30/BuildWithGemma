@@ -1,15 +1,18 @@
 # Math Sync — On-Device AI with Gemma 4
 
 **Math Sync is a tutor you load your course into once — then it teaches, graphs, and
-checks its own work, anywhere there's a power outlet.** It runs Gemma 4 entirely on the
-local machine through Ollama: no cloud, no account, no data leaving the device, and it
-keeps working with the network physically off. What makes it more than a chat wrapper is
-that it **verifies its own answers deterministically** — a math engine checks each result
-against the course answer key, so a green ✓ means *proven correct*, not *the model says so*.
+checks its own work, anywhere there's a power outlet.**
+
+It runs Gemma 4 entirely on the local machine through Ollama: no cloud, no account, no data
+leaving the device, and it keeps working with the network physically off. What makes it more
+than a chat wrapper is that it **verifies its own answers deterministically** — a math engine
+checks each result against the course answer key, so a green ✓ means *proven correct*, not
+*the model says so*.
 
 - **Repo:** https://github.com/jackbot30/BuildWithGemma (headline app in `math-sync/`)
 - **Track:** On-Device AI with Gemma 4
 - **Demo model:** `gemma4:e2b` via Ollama (local). `gemma4:e4b` also supported.
+- **Team:** Jack, Leander & Luis
 
 ## Known limitations (stated first, on purpose)
 

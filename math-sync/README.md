@@ -117,7 +117,7 @@ eval/                problems.json (answer keys) · run.ts (pass table + writes 
 
 ## Team & license
 
-Built at *Just Build: Gemma Hackathon* (Jul 17–18, 2026) by Jack & Leander.
+Built at *Just Build: Gemma Hackathon* (Jul 17–18, 2026) by Jack, Leander & Luis.
 MIT licensed (code only — see `LICENSE`). Gemma weights are under [Google's Gemma Terms
 of Use](https://ai.google.dev/gemma/terms). **Kaggle Writeup:**
 [`docs/kaggle-writeup.md`](../docs/kaggle-writeup.md) — **submission URL:** _TODO: paste the Kaggle link before 2:30 PM_.
