@@ -41,6 +41,16 @@
   --radius: 4px; /* Orbit's identity is square, not rounded */
   --orbit-reward: #f2b950;
   --orbit-line: rgba(185, 139, 224, 0.28);
+  /* Design-system tokens (2026 refresh): a signature accent gradient, a text
+     gradient for hero wordmarks, layered elevation shadows, and a hover/focus
+     glow — applied consistently across panels, cards, and buttons so depth and
+     motion read as one language. */
+  --orbit-accent-grad: linear-gradient(135deg, #8f68cf 0%, #7d5ba6 55%, #6d4b96 100%);
+  --orbit-text-grad: linear-gradient(90deg, #e9daff 0%, #f2b950 130%);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --elev-2: 0 8px 30px -12px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --elev-3: 0 24px 70px -20px rgba(0, 0, 0, 0.72), 0 6px 16px rgba(0, 0, 0, 0.4);
+  --orbit-glow: 0 0 0 1px rgba(185, 139, 224, 0.35), 0 10px 34px -8px rgba(125, 91, 166, 0.55);
 }
 
 * { box-sizing: border-box; }
@@ -414,10 +424,15 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
        behind the whole app without touching layout. --- */
 [data-theme="orbit"] body {
   position: relative;
+  /* Aurora / gradient-mesh lighting (2026): several luminous, muted washes over
+     a deep base, so panels and text pop against a balanced, high-contrast ground. */
   background:
-    radial-gradient(1200px 700px at 78% -8%, rgba(125, 91, 166, 0.30), transparent 60%),
+    radial-gradient(1100px 680px at 80% -10%, rgba(125, 91, 166, 0.34), transparent 60%),
+    radial-gradient(920px 640px at 4% 2%, rgba(58, 92, 190, 0.22), transparent 58%),
+    radial-gradient(820px 600px at 98% 84%, rgba(198, 96, 168, 0.16), transparent 60%),
     radial-gradient(900px 620px at 12% 108%, rgba(242, 185, 80, 0.10), transparent 55%),
     var(--bg);
+  background-attachment: fixed;
 }
 [data-theme="orbit"] body::before {
   content: "";
@@ -476,12 +491,13 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 [data-theme="orbit"] #orbit-stars.ready { opacity: 0.45; }
 html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 
-/* --- Beginning animation (orbit-intro): Leander's star intro, ported as a
-       one-time overlay. Painted fullscreen the instant the page loads under the
-       Orbit theme (so the app never flashes underneath), then app.js fades it
-       out to reveal the UI. Hidden for every other theme. The gradient + wordmark
-       are a self-contained backdrop, so the intro still reads if the video can't
-       autoplay. --- */
+/* --- Blastoff intro (orbit-intro): a one-time launch sequence — T-minus
+       countdown → ignition (engine glow + warp rays) → the wordmark blasts up as
+       the whole overlay lifts and fades, revealing the app. Painted fullscreen
+       the instant the page loads under the Orbit theme (so the app never flashes
+       underneath); app.js drives the phase classes (.ignite/.launching/.gone).
+       Hidden for every other theme; the gradient + wordmark are self-contained so
+       it still reads if the star video can't autoplay. --- */
 #orbit-intro { display: none; }
 [data-theme="orbit"] #orbit-intro {
   position: fixed;
@@ -489,13 +505,12 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
   z-index: 1000;
   display: grid;
   place-items: center;
-  background:
-    radial-gradient(1200px 800px at 50% 38%, rgba(125, 91, 166, 0.4), transparent 70%),
-    #0d0a1a;
+  background: radial-gradient(1200px 900px at 50% 42%, rgba(125, 91, 166, 0.45), transparent 68%), #08060f;
   opacity: 1;
-  transition: opacity 1.6s ease;
   pointer-events: none;
   overflow: hidden;
+  transition: opacity 0.9s ease, transform 1.1s cubic-bezier(0.5, 0, 0.15, 1), filter 0.9s ease;
+  will-change: opacity, transform;
 }
 #orbit-intro video {
   position: absolute;
@@ -503,38 +518,112 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.55;
+  opacity: 0.5;
+  transition: opacity 0.8s ease, transform 1.1s cubic-bezier(0.5, 0, 0.15, 1), filter 0.9s ease;
+}
+
+/* Warp: faint light rays from centre; dormant until ignition, then burst and
+   stretch (hyperspace) on launch. */
+.oi-warp {
+  position: absolute;
+  inset: -20%;
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(230, 214, 251, 0) 0deg, rgba(230, 214, 251, 0.5) 0.3deg, rgba(230, 214, 251, 0) 1.1deg);
+  opacity: 0;
+  transform: scale(0.4);
+  mix-blend-mode: screen;
+  transition: opacity 0.5s ease, transform 1.2s cubic-bezier(0.4, 0, 0.1, 1);
+}
+#orbit-intro.ignite .oi-warp { opacity: 0.32; transform: scale(1); }
+#orbit-intro.launching .oi-warp { opacity: 0.9; transform: scale(3.2); }
+
+/* Engine glow at the base, flares on ignition and pushes up on launch. */
+.oi-glow {
+  position: absolute;
+  left: 50%;
+  bottom: -12%;
+  width: 62vw;
+  height: 42vh;
+  transform: translateX(-50%) scale(0.6);
+  transform-origin: 50% 100%;
+  background: radial-gradient(closest-side, rgba(242, 185, 80, 0.85), rgba(242, 140, 60, 0.35) 42%, transparent 72%);
+  opacity: 0;
+  filter: blur(16px);
+  mix-blend-mode: screen;
+  transition: opacity 0.4s ease, transform 0.9s cubic-bezier(0.3, 0, 0.1, 1);
+}
+#orbit-intro.ignite .oi-glow { opacity: 0.9; transform: translateX(-50%) scale(1); }
+#orbit-intro.launching .oi-glow { opacity: 1; transform: translateX(-50%) scale(1.7) translateY(-6vh); }
+
+.oi-stage {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  text-align: center;
 }
 .orbit-intro-title {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  color: #f3edf2;
-  animation: orbit-intro-title 1.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  color: #f4eef7;
+  animation: orbit-intro-title 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 1.1s cubic-bezier(0.5, 0, 0.12, 1), opacity 0.8s ease, filter 0.8s ease;
 }
 .orbit-intro-kicker {
   display: block;
-  margin-bottom: 12px;
-  font-size: 13px;
-  letter-spacing: 0.42em;
+  margin-bottom: 16px;
+  font-size: clamp(11px, 1.4vw, 14px);
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
   text-transform: uppercase;
   color: var(--orbit-reward);
 }
 .orbit-intro-title strong {
-  font-size: clamp(46px, 12vw, 128px);
+  display: block;
+  font-size: clamp(52px, 15vw, 150px);
   font-weight: 800;
-  letter-spacing: 0.24em;
-  text-shadow: 0 8px 44px rgba(125, 91, 166, 0.6);
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  background: linear-gradient(180deg, #ffffff 0%, #ecdcfd 45%, #c79bec 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 12px 44px rgba(125, 91, 166, 0.55));
 }
-[data-theme="orbit"] #orbit-intro.fade-out { opacity: 0; }
+#orbit-intro.launching .orbit-intro-title { transform: translateY(-44vh) scale(1.35); opacity: 0; filter: blur(3px); }
+
+/* T-minus countdown numbers. */
+.oi-count {
+  position: absolute;
+  z-index: 3;
+  font-size: clamp(64px, 16vw, 184px);
+  font-weight: 800;
+  color: #f4eef7;
+  opacity: 0;
+  text-shadow: 0 0 52px rgba(185, 139, 224, 0.7);
+}
+.oi-count.tick { animation: oi-tick 0.62s ease-out; }
+@keyframes oi-tick {
+  0%   { opacity: 0; transform: scale(1.6); filter: blur(6px); }
+  24%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+
+/* Blastoff: the whole overlay lifts and fades. */
+#orbit-intro.launching { opacity: 0; transform: translateY(-16vh); filter: blur(2px); }
+#orbit-intro.launching video { opacity: 0; transform: scale(1.25); filter: blur(4px); }
 #orbit-intro.gone { display: none !important; }
+
 @keyframes orbit-intro-title {
-  from { opacity: 0; transform: translateY(18px) scale(0.98); letter-spacing: 0.5em; }
+  from { opacity: 0; transform: translateY(20px) scale(0.98); letter-spacing: 0.5em; }
   to   { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .orbit-intro-title { animation: none; }
-  [data-theme="orbit"] #orbit-intro { transition: none; }
+  [data-theme="orbit"] #orbit-intro,
+  #orbit-intro video,
+  .oi-warp,
+  .oi-glow,
+  .orbit-intro-title { transition: opacity 0.4s ease; animation: none; }
+  .oi-warp, .oi-glow, .oi-count { display: none; }
 }
 
 /* --- Panels: translucent plum with blur so the starfield reads through.
@@ -543,9 +632,11 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 [data-theme="orbit"] #composer,
 [data-theme="orbit"] #progress-strip,
 [data-theme="orbit"] #course-nav {
-  background: rgba(20, 14, 34, 0.82);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(32, 23, 54, 0.78), rgba(16, 11, 30, 0.82));
+  backdrop-filter: blur(16px) saturate(1.25);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
   border-color: var(--orbit-line);
+  box-shadow: var(--elev-2);
 }
 [data-theme="orbit"] header { border-bottom: 1px solid var(--orbit-line); }
 [data-theme="orbit"] #composer { border-top: 1px solid var(--orbit-line); }
@@ -554,8 +645,13 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 /* Brand wordmark in Orbit's uppercase, wide-tracked treatment */
 [data-theme="orbit"] .brand strong {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--text);
+  letter-spacing: 0.2em;
+  font-size: clamp(15px, 1.1vw + 11px, 21px);
+  background: var(--orbit-text-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* Bubbles + cards: translucent, square, faint plum blur */
@@ -567,15 +663,29 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 [data-theme="orbit"] .fc-deck-row,
 [data-theme="orbit"] .calc-entry,
 [data-theme="orbit"] .study-face {
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--orbit-line);
+  box-shadow: var(--elev-1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+[data-theme="orbit"] .fc-deck-row,
+[data-theme="orbit"] .fc-card {
+  transition: transform 0.18s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+[data-theme="orbit"] .fc-deck-row:hover,
+[data-theme="orbit"] .fc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elev-2);
+  border-color: rgba(185, 139, 224, 0.5);
 }
 
 /* Tabs: active tab gets a marigold underline accent, the "mission control" feel */
+[data-theme="orbit"] .tab { transition: color 0.18s ease, background 0.18s ease; }
+[data-theme="orbit"] .tab:hover { color: var(--text); }
 [data-theme="orbit"] .tab[aria-selected="true"] {
   background: rgba(125, 91, 166, 0.22);
   border-color: var(--orbit-line);
   color: var(--text);
+  box-shadow: inset 0 -2px 0 0 var(--orbit-reward);
 }
 
 /* Send / primary buttons keep amethyst fill but square + light text */
@@ -585,8 +695,30 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 [data-theme="orbit"] .study-show,
 [data-theme="orbit"] #calc-form button,
 [data-theme="orbit"] #graph-form button {
-  color: #f3edf2;
-  box-shadow: 0 4px 16px rgba(125, 91, 166, 0.35);
+  color: #f6f0fb;
+  background: var(--orbit-accent-grad);
+  border: 1px solid rgba(185, 139, 224, 0.5);
+  box-shadow: var(--elev-1);
+  transition: transform 0.16s ease, box-shadow 0.22s ease, filter 0.2s ease;
+}
+[data-theme="orbit"] #send:hover,
+[data-theme="orbit"] #ask-lesson:hover,
+[data-theme="orbit"] .quiz-check:hover,
+[data-theme="orbit"] .study-show:hover,
+[data-theme="orbit"] #calc-form button:hover,
+[data-theme="orbit"] #graph-form button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--orbit-glow);
+  filter: brightness(1.08);
+}
+[data-theme="orbit"] #send:active,
+[data-theme="orbit"] #ask-lesson:active,
+[data-theme="orbit"] .quiz-check:active,
+[data-theme="orbit"] .study-show:active,
+[data-theme="orbit"] #calc-form button:active,
+[data-theme="orbit"] #graph-form button:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
 }
 
 /* Verification badge / verdicts + offline badge lean on the marigold reward hue

@@ -68,24 +68,50 @@ function syncOrbitStars() {
 }
 syncOrbitStars();
 
-// --- Orbit beginning animation: play Leander's star intro once on load, then
-// fade the overlay to reveal the app. Pure presentation — the overlay sits above
-// everything and is removed after ~4.3s; no feature code runs differently. The
-// CSS gradient/wordmark backdrop covers autoplay refusal. Runs only under Orbit. ---
+// --- Orbit blastoff intro: a one-time launch sequence on load — T-minus
+// countdown → ignition → the wordmark blasts up as the overlay lifts, revealing
+// the app. Pure presentation: the overlay sits above everything and is removed at
+// the end; no feature code runs differently. The CSS gradient/wordmark backdrop
+// covers autoplay refusal. Runs only under Orbit and respects reduced motion. ---
 function runOrbitIntro() {
   const intro = document.getElementById("orbit-intro");
   if (!intro || document.documentElement.dataset.theme !== "orbit") return;
   const video = /** @type {HTMLVideoElement | null} */ (
     document.getElementById("orbit-intro-video")
   );
+  const count = document.getElementById("oi-count");
   void video?.play().catch(() => {});
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const dwell = reduce ? 300 : 2600; // star-screen dwell before the fade
-  window.setTimeout(() => intro.classList.add("fade-out"), dwell);
-  window.setTimeout(() => {
+
+  const end = () => {
     intro.classList.add("gone");
     video?.pause();
-  }, dwell + 1700);
+  };
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    intro.classList.add("launching"); // quick fade, no countdown/warp
+    window.setTimeout(end, 500);
+    return;
+  }
+
+  const seq = ["3", "2", "1"];
+  const step = 620;
+  let i = 0;
+  const tick = () => {
+    if (count) {
+      count.textContent = seq[i] ?? "";
+      count.classList.remove("tick");
+      void count.offsetWidth; // force reflow so the tick animation restarts
+      count.classList.add("tick");
+    }
+    i += 1;
+    if (i < seq.length) window.setTimeout(tick, step);
+  };
+  tick();
+
+  const ignite = seq.length * step; // countdown done → light the engines
+  window.setTimeout(() => intro.classList.add("ignite"), ignite);
+  window.setTimeout(() => intro.classList.add("launching"), ignite + 420);
+  window.setTimeout(end, ignite + 420 + 1150);
 }
 runOrbitIntro();
 
