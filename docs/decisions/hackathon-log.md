@@ -181,3 +181,34 @@ due reviews → capped new). All state lives in localStorage with the decks — 
 server surface, zero risk to the demo path, consistent with "nothing leaves the
 machine." Not implemented on purpose: fuzz intervals, custom deck options, sibling
 burying — demo-day scope.
+
+## 2026-07-18 · Orbit integration variant B — one process serves both UIs
+
+Bake-off variant B of "wire Orbit to the real backend." The other variants keep
+UI/server.js (Node) proxying to math-sync (Bun) — two processes. B collapses that
+to one: math-sync's Bun server serves Orbit's static files under `/orbit/` (one
+marked STATIC-ONLY block in server.ts, no new business logic), and `/` keeps
+serving math-sync's own UI untouched. Both UIs run from a single `bun run
+server.ts`. The airplane-mode story is simpler — one process, one port, nothing to
+forget to start.
+
+Path fix chosen: a single `<base href="/orbit/">` in Orbit's index.html rather
+than rewriting every fetch. Relative refs (style.css, app.js, assets/stars.mp4)
+resolve under `/orbit/`; root-absolute paths (`/api/…`, `/vendor/…`,
+`/course-asset/…`, `/srs.js`) are unaffected by `<base>` and hit the backend on the
+same origin — so no proxy is needed at all.
+
+Feature parity with the other variants, without duplicating logic: flashcards.js
+(Orbit) imports the SAME `/srs.js` scheduler math-sync and srs.test.ts use — the
+SRS study session is single-sourced, and decks share math-sync's localStorage key
+(`ms-flashcard-decks`). Orbit's chat now handles the full SSE protocol: `flashcards`
+(deck + study), `round`/`tool` (live progress strip), Stop via AbortController, and
+`trace` ("What Gemma did" drawer). Quiz cards + verification badges already worked
+and were left intact. New test src/orbit-serve.test.ts boots the real server and
+asserts both UIs serve from one process, `/srs.js` is reachable, and traversal out
+of ../UI is refused. Gate: 185 tests pass, tsc clean.
+
+Tradeoff / against B: Orbit's static assets now live outside math-sync's `public/`
+(they load from `../UI`), so math-sync's folder is no longer fully self-contained —
+deleting the `/orbit/` block is clean, but the coupling to a sibling folder is real.
+The two-process variants keep the two apps' file trees independent.

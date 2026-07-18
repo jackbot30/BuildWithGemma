@@ -4,12 +4,31 @@ Space-themed front end for the math-sync backend (BuildWithGemma). The backend o
 
 ## Run it
 
-Two processes:
+### One process (orbit-integration-B — the demo path)
+
+math-sync's Bun server now serves this UI itself, so there is no separate front-end
+process and no proxy:
+
+```
+# from BuildWithGemma/math-sync
+ollama serve                       # if not already running
+$env:PORT = "3112"                 # demo port (keeps 8710 free for a live instance)
+bun run server.ts
+```
+
+- Orbit:      http://localhost:3112/orbit/
+- math-sync:  http://localhost:3112/        (unchanged; both UIs run from one process)
+
+Orbit's `index.html` sets `<base href="/orbit/">` so relative assets resolve under
+`/orbit/`, while its root-absolute `/api/*`, `/vendor/*`, `/course-asset/*`, and
+`/srs.js` calls hit the backend on the same origin — no proxy needed. `server.js`
+below is kept only for the legacy two-process setup.
+
+### Two processes (legacy)
 
 ```
 # 1. Backend (from BuildWithGemma/math-sync)
 ollama serve                       # if not already running
-set MATH_SYNC_MODEL=gemma4:12b     # or pull gemma4:e2b for the backend default
 set MATH_SYNC_STAY_ALIVE=1         # optional: survive with no browser open
 bun run server                     # port 8710
 
