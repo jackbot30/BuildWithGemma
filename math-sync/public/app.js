@@ -315,7 +315,9 @@ async function ask(message) {
         if (ev.name === "verify_solution" && ev.phase === "result") {
           const ok = ev.detail.startsWith("VERIFIED");
           const v = document.createElement("div");
-          v.className = `verdict ${ok ? "ok" : "bad"}`;
+          // verdict-verify: bigger type + a one-shot glow so it reads from the back
+          // of the room (CSS only; settles to the base .verdict style). Wording fixed.
+          v.className = `verdict verdict-verify ${ok ? "ok" : "bad"}`;
           v.textContent = ok
             ? "✓ verified by substitution — deterministic, not the model"
             : "✗ solution did not check out";

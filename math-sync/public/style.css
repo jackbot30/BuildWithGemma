@@ -82,6 +82,24 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .verdict { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; margin-top: 8px; }
 .verdict.ok { color: var(--ok); }
 .verdict.bad { color: var(--bad); }
+/* feat/verify-badge: the substitution verdict lands from the back of the room —
+   bigger type + a one-shot glow/pulse (~1.2s) that settles to the base .verdict
+   style. Glow uses currentColor so ✓ is green and ✗ is red automatically. */
+.verdict.verdict-verify {
+  font-size: 17px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  animation: verify-pop 1.2s ease-out 1;
+}
+@keyframes verify-pop {
+  0%   { transform: scale(0.92); box-shadow: 0 0 0 0 currentColor; }
+  30%  { transform: scale(1.05); }
+  55%  { box-shadow: 0 0 16px 3px currentColor; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .verdict.verdict-verify { animation: none; }
+}
 .plot { margin-top: 10px; background: #fff; border-radius: 8px; padding: 6px; overflow: auto; }
 
 #composer { display: flex; gap: 10px; padding: 14px 16px; background: var(--panel); border-top: 1px solid rgba(148, 163, 184, 0.2); }
