@@ -112,6 +112,9 @@ async function handleEval(): Promise<Response> {
 const server = Bun.serve({
   hostname: HOST,
   port: PORT,
+  // SSE tutoring turns can run minutes on CPU — don't let Bun kill the stream.
+  // (255s is Bun's max; each streamed event resets the idle clock.)
+  idleTimeout: 255,
   async fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;

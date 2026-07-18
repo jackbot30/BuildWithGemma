@@ -66,9 +66,11 @@ export async function runAgent(
     { role: "user", content: userInput },
   ];
 
+  let lastText = "";
   try {
     for (let round = 0; round < MAX_ROUNDS; round++) {
       const { text, toolCalls } = await runTurn(messages, emit);
+      if (text.trim()) lastText = text;
 
       if (toolCalls.length === 0) {
         // Guard the small-Gemma "empty final answer after a tool round" quirk.
@@ -93,7 +95,9 @@ export async function runAgent(
       // Emit any graphs this round produced.
       for (const spec of ctx.plots.splice(0)) emit({ type: "plot", spec });
     }
-    emit({ type: "done", text: "Reached the tool-round limit without a final answer." });
+    // Hit the round cap — fall back to the best answer text we streamed, since
+    // small Gemma often emits its final prose alongside one last tool call.
+    emit({ type: "done", text: lastText.trim() || "Reached the tool-round limit without a final answer." });
   } catch (err) {
     emit({ type: "error", message: err instanceof Error ? err.message : String(err) });
   }

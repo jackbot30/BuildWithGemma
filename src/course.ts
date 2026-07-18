@@ -51,22 +51,31 @@ export async function loadCourse(dir?: string): Promise<CoursePack> {
  * instead of whole files if context gets tight.
  */
 export function lookupCourse(pack: CoursePack, query: string): string {
-  const q = query.toLowerCase().trim();
-  const hits: string[] = [];
+  // Keyword scoring, not whole-phrase substring — "solve quadratic equations"
+  // should still match a lesson that says "quadratic".
+  const tokens = (query.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length > 2);
+  const score = (text: string): number => {
+    const lc = text.toLowerCase();
+    return tokens.reduce((n, t) => n + (lc.includes(t) ? 1 : 0), 0);
+  };
 
-  if (pack.syllabus.toLowerCase().includes(q)) {
-    hits.push(`## From syllabus\n\n${pack.syllabus}`);
-  }
-  for (const lesson of pack.lessons) {
-    if (lesson.title.toLowerCase().includes(q) || lesson.content.toLowerCase().includes(q)) {
-      hits.push(`## From lesson: ${lesson.title}\n\n${lesson.content}`);
-    }
-  }
-  if (hits.length === 0) {
+  const sections = [
+    { title: "syllabus", content: pack.syllabus },
+    ...pack.lessons.map((l) => ({ title: l.title, content: l.content })),
+  ]
+    .map((s) => ({ ...s, s: score(`${s.title}\n${s.content}`) }))
+    .filter((s) => s.s > 0)
+    .sort((a, b) => b.s - a.s);
+
+  if (sections.length === 0) {
     return `No course material matched "${query}". Available lessons: ${pack.lessons
       .map((l) => l.title)
       .join("; ")}.`;
   }
-  // Cap returned context so we don't blow the model's window on a broad query.
-  return hits.join("\n\n---\n\n").slice(0, 6000);
+  // Return the top couple of sections, capped so we don't blow the context window.
+  return sections
+    .slice(0, 2)
+    .map((s) => `## From ${s.title}\n\n${s.content}`)
+    .join("\n\n---\n\n")
+    .slice(0, 6000);
 }

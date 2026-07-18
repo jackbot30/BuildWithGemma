@@ -153,7 +153,8 @@ async function ask(message) {
           v.textContent = ok ? "✓ verified against the answer key" : "✗ check failed";
           bubble.appendChild(v);
         } else {
-          addTrace(`↳ ${ev.name} ${ev.phase}: ${ev.detail}`);
+          const brief = ev.detail.length > 80 ? ev.detail.slice(0, 80) + "…" : ev.detail;
+          addTrace(`↳ ${ev.name} ${ev.phase === "call" ? "·" : "→"} ${brief}`);
         }
         break;
       case "plot":

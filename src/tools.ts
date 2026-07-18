@@ -7,7 +7,15 @@
 import type { ToolSchema } from "./ollama.ts";
 import type { CoursePack } from "./course.ts";
 import { lookupCourse } from "./course.ts";
-import { checkAnswer } from "./checker.ts";
+import { checkAnswer, checkSet } from "./checker.ts";
+
+/** Split a free-form answer ("x=2 or x=3", "2, -2") into bare expressions. */
+function splitAnswers(s: string): string[] {
+  return s
+    .split(/\bor\b|\band\b|,|;/i)
+    .map((p) => p.replace(/^\s*[a-zA-Z]\w*\s*=\s*/, "").trim())
+    .filter(Boolean);
+}
 
 export interface PlotSpec {
   fn: string;
@@ -74,11 +82,13 @@ const TOOLS: Record<string, Tool> = {
       },
     },
     run: (args) => {
-      const result = checkAnswer(asString(args.answer, "answer"), asString(args.expected, "expected"));
-      const points = result.pointsTested.length;
-      return result.equal
-        ? `CORRECT — verified equal at ${points} sample point(s).`
-        : `INCORRECT${result.reason ? ` (${result.reason})` : ""} — not equal.`;
+      const got = splitAnswers(asString(args.answer, "answer"));
+      const exp = splitAnswers(asString(args.expected, "expected"));
+      const multi = got.length > 1 || exp.length > 1;
+      const equal = multi ? checkSet(got, exp) : checkAnswer(got[0] ?? "", exp[0] ?? "").equal;
+      return equal
+        ? "CORRECT — verified against the answer key."
+        : "INCORRECT — the proposed answer does not equal the expected answer.";
     },
   },
 
