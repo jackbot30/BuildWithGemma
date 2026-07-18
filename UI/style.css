@@ -413,6 +413,180 @@ body.arrive .slide-bottom, body.arrive .slide-up {
 .quiz-result.ok { color: var(--primary); }
 .quiz-result.bad { color: var(--text); }
 .quiz-foot { margin-top: 10px; font-size: 11px; color: var(--dim); }
+.quiz-missed-note { margin-top: 6px; font-size: 11.5px; color: var(--dim); }
+
+/* ---------- Live turn progress strip ---------- */
+
+.chat-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  color: var(--primary);
+  background: rgba(125, 91, 166, 0.1);
+  border-bottom: 1px solid var(--line);
+}
+.chat-progress[hidden] { display: none; }
+.cp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--reward);
+  animation: cpPulse 1s ease-in-out infinite;
+}
+@keyframes cpPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+.cp-stage { font-weight: 600; }
+.cp-round { color: var(--dim); font-variant-numeric: tabular-nums; }
+.cp-clock { margin-left: auto; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* Send/Stop toggle + stopped note */
+.btn.is-stop { background: rgba(74, 60, 90, 0.14); color: var(--text); }
+.stopped-note { font-size: 12px; }
+
+/* ---------- Trace drawer ("What Gemma did") ---------- */
+
+.trace-drawer {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  background: rgba(74, 60, 90, 0.06);
+  padding: 4px 10px;
+  font-size: 12.5px;
+}
+.trace-drawer > summary {
+  cursor: pointer;
+  padding: 4px 0;
+  color: var(--primary);
+  font-weight: 600;
+  list-style: none;
+}
+.trace-drawer > summary::-webkit-details-marker { display: none; }
+.trace-drawer > summary::before { content: "▸ "; }
+.trace-drawer[open] > summary::before { content: "▾ "; }
+.trace-body { padding: 4px 0 8px; }
+.trace-body h3 { font-size: 12px; color: var(--dim); margin-top: 8px; font-weight: 600; }
+.trace-calls { margin: 4px 0 0 16px; font-size: 12px; }
+.trace-calls li { margin-top: 6px; }
+.trace-calls code { font-family: Consolas, monospace; color: var(--text); }
+.trace-arrow { color: var(--dim); }
+.trace-result { color: var(--dim); font-family: Consolas, monospace; word-break: break-word; }
+.trace-meta { margin-top: 10px; font-size: 11px; color: var(--dim); }
+.trace-when { margin-left: 8px; font-weight: 400; }
+
+/* ---------- Flashcards: inline deck ---------- */
+
+.flashcard-deck {
+  margin-top: 10px;
+  border: 1px solid rgba(125, 91, 166, 0.4);
+  background: rgba(74, 60, 90, 0.08);
+  padding: 12px 14px;
+}
+.fc-head { display: flex; justify-content: space-between; align-items: baseline; }
+.fc-head strong { color: var(--primary); font-size: 14px; }
+.fc-counter { font-size: 12px; }
+.fc-card {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  min-height: 96px;
+  padding: 18px 16px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.fc-card.back { background: rgba(125, 91, 166, 0.1); }
+.fc-face.study-big { font-size: 19px; font-weight: 600; }
+.fc-face.study-med { font-size: 15px; }
+.fc-face.study-long { font-size: 13.5px; text-align: left; }
+.fc-hint { margin-top: 8px; font-size: 11px; }
+.fc-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+.fc-nav .btn { padding: 6px 12px; font-size: 12px; }
+.fc-export { margin-left: auto; }
+.fc-foot { margin-top: 10px; font-size: 11px; }
+.fc-study-cta { display: block; margin-top: 12px; width: 100%; }
+
+/* ---------- Flashcards / SRS overlay ---------- */
+
+.fc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 60, 90, 0.55);
+  padding: 24px;
+}
+.fc-overlay.hidden { display: none; }
+.fc-overlay-box {
+  width: min(680px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 60px rgba(74, 60, 90, 0.4);
+}
+.fc-overlay-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.fc-overlay-head h2 { font-size: 17px; color: var(--primary); }
+.fc-overlay-body { padding: 16px 18px; overflow-y: auto; }
+
+.fc-deck-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.fc-row-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fc-row-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+}
+.fc-row-open strong { color: var(--primary); }
+.fc-row-study { padding: 6px 12px; font-size: 12px; }
+.fc-row-study:disabled { opacity: 0.5; cursor: default; }
+.fc-row-del { padding: 6px 10px; font-size: 12px; }
+
+/* SRS study stage */
+.study-stage { display: flex; flex-direction: column; gap: 14px; }
+.study-bar { display: flex; align-items: center; gap: 10px; }
+.study-bar strong { color: var(--primary); }
+.study-bar .muted { margin-left: auto; font-variant-numeric: tabular-nums; }
+.study-meter { height: 5px; background: rgba(74, 60, 90, 0.14); }
+.study-meter-fill { height: 100%; width: 0; background: var(--reward); transition: width 0.25s ease; }
+.study-face {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.study-face.study-big { font-size: 22px; font-weight: 600; }
+.study-face.study-med { font-size: 17px; }
+.study-face.study-long { font-size: 14px; text-align: left; align-items: stretch; }
+.study-q { font-weight: 600; }
+.study-face hr { width: 100%; border: none; border-top: 1px solid var(--line); margin: 12px 0; }
+.study-a { color: var(--primary); }
+.study-show { align-self: center; padding: 10px 20px; }
+.study-grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.study-grade { padding: 10px 6px; font-size: 12px; text-align: center; }
+.study-grade .muted { font-size: 10.5px; }
+.study-again { border-color: rgba(200, 80, 80, 0.5); }
+.study-easy { border-color: rgba(242, 185, 80, 0.6); }
 
 /* ---------- Calculator modal ---------- */
 

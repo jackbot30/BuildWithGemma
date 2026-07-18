@@ -29,7 +29,7 @@
       <span>ask · quiz</span>
     </div>
     <button id="teacherBtn" class="btn btn-gold">Chat</button>
-    <button id="gamesBtn" class="btn">Games!</button>
+    <button id="deckBtn" class="btn">Flashcards</button>
   </div>
 
   <div class="tools-float slide-bottom">
@@ -56,10 +56,17 @@
         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </button>
     </div>
+    <!-- live turn progress: stage + round + elapsed clock -->
+    <div id="chatProgress" class="chat-progress" hidden>
+      <span class="cp-dot"></span>
+      <span id="cpStage" class="cp-stage">thinking…</span>
+      <span id="cpRound" class="cp-round"></span>
+      <span id="cpClock" class="cp-clock">0s</span>
+    </div>
     <div id="chatLog" class="chat-log"></div>
     <form id="chatForm" class="chat-form">
       <input id="chatInput" type="text" placeholder="Ask about your stats" autocomplete="off">
-      <button type="submit" class="btn">Send</button>
+      <button id="chatSend" type="submit" class="btn">Send</button>
     </form>
   </div>
 
@@ -76,9 +83,26 @@
     </div>
   </div>
 
+  <!-- Flashcards / SRS study overlay -->
+  <div id="fcOverlay" class="fc-overlay hidden">
+    <div class="fc-overlay-box">
+      <div class="fc-overlay-head">
+        <h2>Flashcards</h2>
+        <button id="fcOverlayClose" class="icon-btn" aria-label="Close flashcards">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="fcOverlayBody" class="fc-overlay-body"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
 
   <script src="data.js"></script>
+  <!-- trace.js: classic script, exposes window.orbitTrace -->
+  <script src="trace.js"></script>
+  <!-- flashcards.js: ES module — imports scheduling from the proxied /srs.js -->
+  <script type="module" src="flashcards.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -478,9 +478,17 @@ function openChat() {
 document.getElementById("teacherBtn").onclick = openChat;
 document.getElementById("chatClose").onclick = () => chatDrawer.classList.remove("open");
 
-// Placeholder until the backend ships lesson games.
-document.getElementById("gamesBtn").onclick = () =>
-  toast("Games plug in here once the backend ships them.");
+// Flashcards / SRS: opens the deck list + study overlay (window.orbitFlashcards
+// is defined by the deferred module flashcards.js; resolved lazily at click).
+document.getElementById("deckBtn").onclick = () => {
+  if (window.orbitFlashcards) window.orbitFlashcards.openStudyOverlay();
+  else toast("Flashcards module still loading — try again in a moment.");
+};
+document.getElementById("fcOverlayClose").onclick = () =>
+  window.orbitFlashcards && window.orbitFlashcards.closeStudyOverlay();
+document.getElementById("fcOverlay").onclick = (e) => {
+  if (e.target.id === "fcOverlay" && window.orbitFlashcards) window.orbitFlashcards.closeStudyOverlay();
+};
 
 function addMsg(who, text) {
   const d = document.createElement("div");
@@ -576,6 +584,16 @@ function renderQuiz(bubble, quiz) {
               ? "✗ not quite — the answer was " + r.expected
               : "✗ " + r.normalized + " — try again (attempt " + r.attempts + ")";
         }
+        // Loop-closer: a problem missed 3+ times becomes a "Missed questions"
+        // SRS card. Decision + store live in the single-source modules.
+        if (window.orbitMissed && window.orbitMissed.maybeAdd(problem.question, r)) {
+          if (!li.querySelector(".quiz-missed-note")) {
+            const note = document.createElement("p");
+            note.className = "quiz-missed-note muted";
+            note.textContent = "Added to your Missed questions deck →";
+            li.appendChild(note);
+          }
+        }
       } catch (err) {
         result.className = "quiz-result bad";
         result.textContent = "Could not check: " + (err.message || err);
@@ -594,6 +612,73 @@ function renderQuiz(bubble, quiz) {
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+// ---------- Live turn progress strip ----------
+// Mirrors math-sync's progress: stage + round + elapsed clock during a turn.
+// Driven by the "round" and "tool" SSE events (see handleEvent).
+
+const chatProgress = document.getElementById("chatProgress");
+const cpStage = document.getElementById("cpStage");
+const cpRound = document.getElementById("cpRound");
+const cpClock = document.getElementById("cpClock");
+let progressTimer = null;
+
+const TOOL_STAGE = {
+  lookup_course: "looking up the course…",
+  verify_solution: "verifying the solution by substitution…",
+  calculate: "calculating…",
+  plot: "drawing the graph…",
+  create_quiz: "composing your quiz…",
+  create_flashcards: "composing your flashcards…",
+};
+
+function progressStart() {
+  if (!chatProgress) return;
+  const t0 = Date.now();
+  cpStage.textContent = "reading your question…";
+  cpRound.textContent = "";
+  cpClock.textContent = "0s";
+  chatProgress.hidden = false;
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    cpClock.textContent = Math.round((Date.now() - t0) / 1000) + "s";
+  }, 1000);
+}
+function progressSet(stage, round) {
+  if (!chatProgress) return;
+  if (stage) cpStage.textContent = stage;
+  if (round !== undefined) cpRound.textContent = round;
+}
+function progressEnd() {
+  if (!chatProgress) return;
+  chatProgress.hidden = true;
+  clearInterval(progressTimer);
+  progressTimer = null;
+}
+
+// ---------- Send / Stop toggle ----------
+// While a turn streams the Send button becomes Stop and aborts the fetch.
+
+const chatSend = document.getElementById("chatSend");
+let activeController = null; // set while a turn streams; lets Stop abort it.
+
+function setStreaming(streaming) {
+  if (streaming) {
+    chatSend.textContent = "Stop";
+    chatSend.type = "button"; // don't re-submit the form while streaming
+    chatSend.classList.add("is-stop");
+  } else {
+    chatSend.textContent = "Send";
+    chatSend.type = "submit";
+    chatSend.classList.remove("is-stop");
+  }
+}
+
+// In "Stop" mode the button is type=button and this aborts; in "Send" mode it's
+// type=submit and the form's submit handler runs instead.
+chatSend.addEventListener("click", () => {
+  if (chatSend.type === "button" && activeController) activeController.abort();
+});
+
 document.getElementById("chatForm").onsubmit = async (e) => {
   e.preventDefault();
   const input = document.getElementById("chatInput");
@@ -607,11 +692,38 @@ document.getElementById("chatForm").onsubmit = async (e) => {
   bubble.classList.add("thinking");
   let answer = "";
   let started = false;
+  let stopped = false;
+
+  setStreaming(true);
+  progressStart();
+
+  const controller = new AbortController();
+  activeController = controller;
 
   const finish = () => {
     bubble.classList.remove("thinking");
-    chatHistory.push({ role: "assistant", content: answer });
+    if (answer) chatHistory.push({ role: "assistant", content: answer });
     chatLog.scrollTop = chatLog.scrollHeight;
+  };
+
+  // Append a muted "— stopped —" note to the current bubble on abort.
+  const markStopped = () => {
+    if (stopped) return;
+    stopped = true;
+    bubble.classList.remove("thinking");
+    if (!started) bubble.textContent = "";
+    const note = document.createElement("span");
+    note.className = "stopped-note muted";
+    note.textContent = " — stopped —";
+    bubble.appendChild(note);
+    if (answer) chatHistory.push({ role: "assistant", content: answer });
+    chatLog.scrollTop = chatLog.scrollHeight;
+  };
+
+  const cleanup = () => {
+    activeController = null;
+    setStreaming(false);
+    progressEnd();
   };
 
   let res;
@@ -619,6 +731,7 @@ document.getElementById("chatForm").onsubmit = async (e) => {
     res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         message,
         history: chatHistory.slice(0, -1),
@@ -627,10 +740,14 @@ document.getElementById("chatForm").onsubmit = async (e) => {
     });
     if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
   } catch (err) {
-    bubble.classList.remove("thinking");
-    bubble.textContent =
-      "The math-sync backend isn't running, so no live tutoring. Start it with " +
-      "\"bun run server\" in BuildWithGemma\\math-sync. From local data: " + classStatsSummary();
+    if (controller.signal.aborted) markStopped();
+    else {
+      bubble.classList.remove("thinking");
+      bubble.textContent =
+        "The math-sync backend isn't running, so no live tutoring. Start it with " +
+        "\"bun run server\" in BuildWithGemma\\math-sync. From local data: " + classStatsSummary();
+    }
+    cleanup();
     return;
   }
 
@@ -648,11 +765,16 @@ document.getElementById("chatForm").onsubmit = async (e) => {
 
   const handleEvent = (ev) => {
     switch (ev.type) {
+      case "round": // visible progress: which agent round we're on
+        progressSet("thinking…", "round " + ev.round + "/" + ev.cap);
+        break;
       case "delta":
+        progressSet("writing the answer…");
         answer += ev.text;
         setAnswer();
         break;
       case "tool":
+        if (ev.phase === "call") progressSet(TOOL_STAGE[ev.name] || ("using " + ev.name + "…"));
         if (ev.name === "verify_solution" && ev.phase === "result") {
           addVerdict(bubble, ev.detail.startsWith("VERIFIED"),
             ev.detail.startsWith("VERIFIED")
@@ -670,6 +792,14 @@ document.getElementById("chatForm").onsubmit = async (e) => {
         if (!started) setAnswer();
         renderQuiz(bubble, ev.quiz);
         break;
+      case "flashcards": // render deck inline + save; SRS study via the deck CTA
+        if (!started) setAnswer();
+        if (window.orbitFlashcards) window.orbitFlashcards.render(bubble, ev.deck);
+        else addToolLine(bubble, "(flashcards ready — open the Flashcards panel)");
+        break;
+      case "trace": // "What Gemma did" drawer — the tool-use evidence per answer
+        if (window.orbitTrace) window.orbitTrace.attachDrawer(bubble, ev.trace);
+        break;
       case "plot":
         addToolLine(bubble, "(graph available in the Math Sync app window)");
         break;
@@ -682,7 +812,6 @@ document.getElementById("chatForm").onsubmit = async (e) => {
         setAnswer();
         finish();
         break;
-      // "trace" events are for the backend's drawer; skipped here.
     }
   };
 
@@ -703,8 +832,13 @@ document.getElementById("chatForm").onsubmit = async (e) => {
       }
     }
   } catch (err) {
-    if (!answer) { answer = "Connection lost mid-answer."; setAnswer(); }
-    finish();
+    if (controller.signal.aborted) markStopped();
+    else {
+      if (!answer) { answer = "Connection lost mid-answer."; setAnswer(); }
+      finish();
+    }
+  } finally {
+    cleanup();
   }
 };
 
