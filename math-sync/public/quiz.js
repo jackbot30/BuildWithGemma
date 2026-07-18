@@ -3,6 +3,10 @@
 // tag in index.html, a marked CSS block in style.css, and app.js delegating the
 // "quiz" SSE event to window.msQuiz.render. Zero external URLs.
 
+// feat/missed: a problem the student needed 3+ tries on becomes a flashcard in the
+// shared "Missed questions" deck (pure logic in missed.js; store via msFlashcards).
+import { qualifies, buildCard, addMissedCard } from "/missed.js";
+
 /**
  * @typedef {{ question: string, type: "numeric"|"expression" }} QuizProblemView
  * @typedef {{ id: number, title: string, problems: QuizProblemView[] }} QuizView
@@ -33,6 +37,29 @@
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
     return /** @type {{ pass: boolean, attempts: number, normalized: string, expected?: string }} */ (data);
+  }
+
+  /**
+   * If the student needed 3+ attempts on this problem, add it to the shared
+   * "Missed questions" flashcard deck and show a one-line muted note (once).
+   * DOM-free decision + dedupe live in missed.js; the store is flashcards.js's.
+   * @param {HTMLElement} li  the <li> for this problem
+   * @param {{ question: string }} problem
+   * @param {{ pass: boolean, attempts: number, expected?: string }} result
+   */
+  function maybeAddMissed(li, problem, result) {
+    if (!qualifies(result)) return;
+    const fc = window.msFlashcards;
+    if (!fc?.loadDecks || !fc?.persistDecks) return;
+    const card = buildCard(problem.question, result.expected);
+    const { decks, added } = addMissedCard(fc.loadDecks(), card);
+    if (!added) return; // already in the deck (deduped) — nothing to write or say
+    fc.persistDecks(decks);
+    if (li.querySelector(".quiz-missed-note")) return;
+    const note = document.createElement("p");
+    note.className = "quiz-missed-note muted";
+    note.textContent = "Added to your Missed questions deck →";
+    li.appendChild(note);
   }
 
   /**
@@ -115,6 +142,7 @@
               : `✗ ${r.normalized} — try again (attempt ${r.attempts})`;
           }
           renderMath(result);
+          maybeAddMissed(li, problem, r);
         } catch (err) {
           result.className = "quiz-result bad";
           result.textContent = `Could not check: ${err instanceof Error ? err.message : err}`;

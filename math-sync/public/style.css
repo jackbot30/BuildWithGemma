@@ -272,6 +272,8 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .quiz-result { margin-top: 4px; font-size: 13px; min-height: 1em; }
 .quiz-result.ok { color: var(--ok); font-weight: 600; }
 .quiz-result.bad { color: var(--bad); }
+/* feat/missed: note shown when a missed problem is saved to the Missed deck. */
+.quiz-missed-note { margin: 4px 0 0; font-size: 12px; }
 .quiz-foot { margin: 12px 0 0; font-size: 11.5px; font-style: italic; }
 /* --- end feat/quiz --- */
 

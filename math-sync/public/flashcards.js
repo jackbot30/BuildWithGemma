@@ -360,4 +360,6 @@ function renderList() {
   });
 }
 
-window.msFlashcards = { render, renderList };
+// loadDecks/persistDecks are exposed so quiz.js can add "Missed questions" cards
+// into the SAME localStorage store (STORE_KEY) through the canonical helpers.
+window.msFlashcards = { render, renderList, loadDecks, persistDecks };
