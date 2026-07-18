@@ -114,3 +114,29 @@ lessons to `assets/<name>`; the server serves them at `/course-asset/<name>` (fl
 names only — traversal rejected); the renderer maps `assets/` images to that route and
 degrades any still-external image to its alt text. Copyright footing is unchanged:
 the images live with the already-local, already-gitignored course text, never in git.
+
+## 2026-07-18 · Quizzes: Gemma composes, the checker grades — stated honestly
+
+"Quiz me on 1.1" → Gemma reads the lesson (lookup_course) and calls `create_quiz`
+with problems + expected answers. The key is therefore model-proposed — but every
+STUDENT answer is graded deterministically by the existing checker, and the UI
+says exactly that ("questions and key by Gemma — grading is deterministic, never
+the model"). Answers never reach the client until earned: the quiz event carries
+questions only; `/api/quiz/answer` reveals the expected value only after a correct
+answer or the 3rd failed attempt (attempts tracked server-side). Validation is
+fail-closed (unparseable expected → rejected back to the model to fix); when the
+model invents a bogus problem `type`, the tool infers numeric/expression from the
+expected value rather than dropping a gradeable problem (proven live — e2b sent
+"multiple choice" on its first attempt).
+
+## 2026-07-18 · Checker: normalize JS-isms; add an approximate tier (bar unmoved)
+
+Live probes found two false-✗ bugs worth fixing before a judged demo: `Math.PI`
+graded INCORRECT vs `pi` (mathjs parses it as an accessor), and `1.414` graded
+INCORRECT vs `sqrt(2)` (default tolerance needs ~6 sig decimals — a textbook
+"round to 3 places" answer failed). Fix: (1) normalize `Math.PI`/`Math.E`/
+`Math.sqrt(`/`Math.abs(`/`**` before parsing; (2) an approximate tier — if exact/
+symbolic fails but both sides agree within 0.1% relative, return equal:true with
+`approx:true` so the UI can say "≈ correct (rounded)". The strict path and its
+tolerances are unchanged; empty answers and parse failures now carry explicit
+reasons instead of a silent INCORRECT.
