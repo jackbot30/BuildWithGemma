@@ -170,3 +170,14 @@ unchanged. Also this morning: composer-intent detection extracted to src/intent.
 agent loop; plot sanitizes model-supplied domains (inverted → swap, degenerate →
 default); lookup results strip image markdown before reaching the model (~fewer
 wasted tokens per turn on a CPU-bound model).
+
+## 2026-07-18 · Flashcards get a real Anki-style SM-2 scheduler, fully client-side
+
+Study mode in the Flashcards tab uses a compact-but-faithful Anki scheduler
+(public/srs.js, pure functions, 10 unit tests): learning steps 1m→10m, graduate
+1d / easy 4d, review grading Again/Hard/Good/Easy with ease-factor adjustments
+and lapses, interval previews on the grade buttons, due-queue ordering (learning →
+due reviews → capped new). All state lives in localStorage with the decks — zero
+server surface, zero risk to the demo path, consistent with "nothing leaves the
+machine." Not implemented on purpose: fuzz intervals, custom deck options, sibling
+burying — demo-day scope.
