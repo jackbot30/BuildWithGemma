@@ -43,6 +43,10 @@ function escapeHtml(s) {
 
 function inlineMd(s) {
   return s
+    // Localized lesson images (flat names under <courseDir>/assets, served by the app).
+    .replace(/!\[([^\]]*)\]\(assets\/([\w.-]+)\)/g, '<img src="/course-asset/$2" alt="$1" loading="lazy" />')
+    // Any image still pointing at the network degrades to its alt text — offline-safe.
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")

@@ -171,6 +171,15 @@ const server = Bun.serve({
       if (!lesson) return json({ error: `lesson "${id}" not found` }, 404);
       return json({ id: lesson.id, title: lesson.title, content: lesson.content });
     }
+    // Localized lesson images (scripts/localize-course-images.ts) — served from
+    // <courseDir>/assets only; flat names, no separators, so no traversal.
+    if (path.startsWith("/course-asset/")) {
+      const name = decodeURIComponent(path.slice("/course-asset/".length));
+      if (!/^[\w.-]+$/.test(name)) return new Response("Bad asset name", { status: 400 });
+      const f = Bun.file(resolve(course.dir, "assets", name));
+      if (!(await f.exists())) return new Response("Not found", { status: 404 });
+      return new Response(f);
+    }
     // --- end course-nav ------------------------------------------------------
     // --- BEGIN calculator feature (feat/calculator) — keep this block self-contained ---
     if (path === "/api/calculate" && req.method === "POST") {

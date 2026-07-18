@@ -101,3 +101,16 @@ booted server, and endpoint smoke tests — plus one live model turn after the f
 merge (trace event + calculate tool verified end-to-end over SSE). Two cross-branch
 seams were fixed at integration, not in the branches: `showView` now knows all four
 views, and the lesson pane hides the calculator/trace views it couldn't know about.
+
+## 2026-07-18 · Lesson images: download-and-localize, not hotlink or placeholder
+
+The Buzz export left 349 image refs (92/100 lessons) pointing at iscontent.byu.edu —
+broken in airplane mode and an external dependency in an "everything local" product.
+Options were hotlink (breaks the offline guarantee), strip to alt-text placeholders
+(loses the actual math diagrams), or download into the gitignored course pack. We
+localize: `scripts/localize-course-images.ts` (unit-tested) downloads each unique URL
+once into `<courseDir>/assets/` with a stable `<basename>-<urlhash>` name and rewrites
+lessons to `assets/<name>`; the server serves them at `/course-asset/<name>` (flat
+names only — traversal rejected); the renderer maps `assets/` images to that route and
+degrades any still-external image to its alt text. Copyright footing is unchanged:
+the images live with the already-local, already-gitignored course text, never in git.
