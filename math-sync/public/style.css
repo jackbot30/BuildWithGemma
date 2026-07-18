@@ -23,6 +23,25 @@
   --bg: #09090b; --panel: #18181b; --text: #fafafa; --muted: #a1a1aa;
   --accent: #a78bfa; --bubble-user: #27272a; --bubble-ai: #18181b;
 }
+/* Orbit — space-station look grafted from the standalone UI/ front end.
+   Palette (UI/style.css "Plum Dusk"): ink #4a3c5a, amethyst #7d5ba6 (primary),
+   marigold #f2b950 (reward), snow #f3edf2. Here it goes dark-on-space: a star
+   field behind translucent plum panels. Panels use rgba so the starfield shows
+   through; all structural tweaks are scoped under [data-theme="orbit"] below. */
+[data-theme="orbit"] {
+  --bg: #0d0a1a;
+  --panel: rgba(30, 22, 48, 0.72);
+  --text: #f3edf2;
+  --muted: #b6a8c9;
+  --accent: #b98be0;
+  --ok: #7bd88f;
+  --bad: #f28b82;
+  --bubble-user: rgba(125, 91, 166, 0.32);
+  --bubble-ai: rgba(46, 34, 68, 0.72);
+  --radius: 4px; /* Orbit's identity is square, not rounded */
+  --orbit-reward: #f2b950;
+  --orbit-line: rgba(185, 139, 224, 0.28);
+}
 
 * { box-sizing: border-box; }
 /* The hidden attribute must always win — sections that set their own `display`
@@ -381,3 +400,146 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .fc-face.study-big { font-size: 20px; }
 .fc-face.study-med { font-size: 17px; }
 .fc-face.study-long { font-size: 14.5px; text-align: left; }
+
+/* ============================================================================
+   ORBIT THEME — structural graft (all scoped under [data-theme="orbit"]).
+   Zero behavior change: pure presentation. The star treatment is a CSS
+   starfield baked in here (airplane-safe, no asset needed); the optional
+   #orbit-stars <video> element (stars.mp4, copied local) layers on top when
+   app.js injects it and is a no-op / invisible for every other theme.
+   ============================================================================ */
+
+/* --- Star field: three parallax layers of box-shadow "stars" drifting up,
+       plus a nebula wash. Painted on a fixed full-screen ::before so it sits
+       behind the whole app without touching layout. --- */
+[data-theme="orbit"] body {
+  position: relative;
+  background:
+    radial-gradient(1200px 700px at 78% -8%, rgba(125, 91, 166, 0.30), transparent 60%),
+    radial-gradient(900px 620px at 12% 108%, rgba(242, 185, 80, 0.10), transparent 55%),
+    var(--bg);
+}
+[data-theme="orbit"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(1.4px 1.4px at 24px 32px, rgba(243, 237, 242, 0.9), transparent),
+    radial-gradient(1.4px 1.4px at 88px 120px, rgba(243, 237, 242, 0.7), transparent),
+    radial-gradient(1.6px 1.6px at 160px 60px, rgba(185, 139, 224, 0.9), transparent),
+    radial-gradient(1.2px 1.2px at 200px 180px, rgba(243, 237, 242, 0.8), transparent),
+    radial-gradient(1.8px 1.8px at 300px 260px, rgba(242, 185, 80, 0.8), transparent);
+  background-size: 340px 340px;
+  animation: orbit-drift 90s linear infinite;
+}
+[data-theme="orbit"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(1px 1px at 60px 90px, rgba(243, 237, 242, 0.55), transparent),
+    radial-gradient(1px 1px at 180px 40px, rgba(243, 237, 242, 0.45), transparent),
+    radial-gradient(1px 1px at 130px 200px, rgba(185, 139, 224, 0.6), transparent);
+  background-size: 220px 220px;
+  animation: orbit-drift 150s linear infinite;
+  opacity: 0.7;
+}
+@keyframes orbit-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 0 -1400px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="orbit"] body::before,
+  [data-theme="orbit"] body::after { animation: none; }
+}
+
+/* --- Optional star video (app.js injects #orbit-stars only under this theme).
+       Fixed, full-bleed, dimmed so foreground text stays legible. Hidden for
+       any theme but orbit; invisible until JS marks it ready. --- */
+#orbit-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+[data-theme="orbit"] #orbit-stars.ready { opacity: 0.45; }
+html:not([data-theme="orbit"]) #orbit-stars { display: none; }
+
+/* --- Panels: translucent plum with blur so the starfield reads through.
+       Marigold hairline borders give Orbit's square, banded identity. --- */
+[data-theme="orbit"] header,
+[data-theme="orbit"] #composer,
+[data-theme="orbit"] #progress-strip,
+[data-theme="orbit"] #course-nav {
+  background: rgba(20, 14, 34, 0.82);
+  backdrop-filter: blur(10px);
+  border-color: var(--orbit-line);
+}
+[data-theme="orbit"] header { border-bottom: 1px solid var(--orbit-line); }
+[data-theme="orbit"] #composer { border-top: 1px solid var(--orbit-line); }
+[data-theme="orbit"] #course-nav { border-right: 1px solid var(--orbit-line); }
+
+/* Brand wordmark in Orbit's uppercase, wide-tracked treatment */
+[data-theme="orbit"] .brand strong {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text);
+}
+
+/* Bubbles + cards: translucent, square, faint plum blur */
+[data-theme="orbit"] .bubble,
+[data-theme="orbit"] .run-card,
+[data-theme="orbit"] .trace-drawer,
+[data-theme="orbit"] .quiz-card,
+[data-theme="orbit"] .fc-card,
+[data-theme="orbit"] .fc-deck-row,
+[data-theme="orbit"] .calc-entry,
+[data-theme="orbit"] .study-face {
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--orbit-line);
+}
+
+/* Tabs: active tab gets a marigold underline accent, the "mission control" feel */
+[data-theme="orbit"] .tab[aria-selected="true"] {
+  background: rgba(125, 91, 166, 0.22);
+  border-color: var(--orbit-line);
+  color: var(--text);
+}
+
+/* Send / primary buttons keep amethyst fill but square + light text */
+[data-theme="orbit"] #send,
+[data-theme="orbit"] #ask-lesson,
+[data-theme="orbit"] .quiz-check,
+[data-theme="orbit"] .study-show,
+[data-theme="orbit"] #calc-form button,
+[data-theme="orbit"] #graph-form button {
+  color: #f3edf2;
+  box-shadow: 0 4px 16px rgba(125, 91, 166, 0.35);
+}
+
+/* Verification badge / verdicts + offline badge lean on the marigold reward hue
+   so the "Gemma checked its work" signal pops against the dark space ground. */
+[data-theme="orbit"] .verdict.ok { color: var(--ok); }
+[data-theme="orbit"] .badge.offline { background: rgba(242, 185, 80, 0.18); color: var(--orbit-reward); }
+[data-theme="orbit"] .mode-tag.tools { background: rgba(185, 139, 224, 0.2); color: var(--accent); }
+
+/* Active lesson link picks up the marigold rail, echoing UI/'s gold "up-next" */
+[data-theme="orbit"] .lesson-link.active {
+  color: var(--orbit-reward);
+  background: rgba(242, 185, 80, 0.12);
+  box-shadow: inset 3px 0 0 var(--orbit-reward);
+}
+
+/* Lesson images keep a plum frame instead of the default white radius */
+[data-theme="orbit"] #lesson-content img { border: 1px solid var(--orbit-line); border-radius: 4px; }
