@@ -30,3 +30,8 @@ Gemma via Ollama at `http://localhost:11434`. Model tags are env-configurable
 ~1.6–2.3x faster on CPU, so we standardized on it; swap with `MATH_SYNC_MODEL`).
 Embeddings use `nomic-embed-text`. License: MIT (code only) — see
 [`math-sync/LICENSE`](math-sync/LICENSE).
+
+## Kaggle writeup
+
+The full submission writeup — rubric-mapped, with the eval numbers and how to run it — is
+in [`docs/kaggle-writeup.md`](docs/kaggle-writeup.md).
