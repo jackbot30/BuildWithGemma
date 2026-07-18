@@ -120,6 +120,14 @@ async function handleEvalResults(): Promise<Response> {
   return json((await file.json()) as unknown);
 }
 
+// ── feat/trace BEGIN (whole feature lives in src/trace.ts; delete this block +
+// the single "/api/traces" route line below to remove it) ──────────────────
+import { getRecentTraces } from "./src/trace.ts";
+function handleTraces(): Response {
+  return json({ traces: getRecentTraces() });
+}
+// ── feat/trace END ──────────────────────────────────────────────────────────
+
 const server = Bun.serve({
   hostname: HOST,
   port: PORT,
@@ -143,6 +151,7 @@ const server = Bun.serve({
       });
     }
     if (path === "/api/chat" && req.method === "POST") return handleChat(req);
+    if (path === "/api/traces") return handleTraces(); // feat/trace
     if (path === "/api/eval/results") return handleEvalResults();
     if (path === "/api/eval") return handleEval();
 

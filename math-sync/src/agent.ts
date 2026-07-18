@@ -2,17 +2,22 @@
  * The tutoring agent loop. Streams Gemma's reply, dispatches tool calls, feeds
  * results back, and repeats (capped). Emits typed events so server.ts can forward
  * them to the client over SSE — stream EVERYTHING so the screen is never frozen.
+ *
+ * Every turn also feeds a TraceBuilder (src/trace.ts) so we can show judges
+ * exactly what the model did: tool calls, timings, verdicts, tok/s.
  */
 
-import { streamChat, type OllamaMessage, type ToolCall } from "./ollama.ts";
+import { streamChat, MODEL, type OllamaMessage, type ToolCall } from "./ollama.ts";
 import type { CoursePack } from "./course.ts";
 import { toolSchemas, dispatchTool, type ToolContext, type PlotSpec } from "./tools.ts";
+import { TraceBuilder, recordTrace, type TurnTrace, type TraceOutcome } from "./trace.ts";
 
 export type AgentEvent =
   | { type: "delta"; text: string }
-  | { type: "tool"; name: string; phase: "call" | "result"; detail: string }
+  | { type: "tool"; name: string; phase: "call" | "result"; detail: string; durationMs?: number }
   | { type: "plot"; spec: PlotSpec }
   | { type: "done"; text: string }
+  | { type: "trace"; trace: TurnTrace }
   | { type: "error"; message: string };
 
 const MAX_ROUNDS = 5;
@@ -31,26 +36,50 @@ function systemPrompt(course: CoursePack): string {
   ].join("\n");
 }
 
-/** One streamed model turn: accumulate text + any tool calls. */
+/** One streamed model turn: accumulate text + any tool calls (traced as a round). */
 async function runTurn(
   messages: OllamaMessage[],
   emit: (e: AgentEvent) => void,
+  trace: TraceBuilder,
 ): Promise<{ text: string; toolCalls: ToolCall[] }> {
   let text = "";
   const toolCalls: ToolCall[] = [];
-  for await (const chunk of streamChat({
-    messages,
-    tools: toolSchemas,
-    options: { temperature: 0.1, num_predict: 1024 },
-  })) {
-    const m = chunk.message;
-    if (m?.content) {
-      text += m.content;
-      emit({ type: "delta", text: m.content });
+  let evalCount: number | undefined;
+  let evalDurationNs: number | undefined;
+  trace.startRound();
+  try {
+    for await (const chunk of streamChat({
+      messages,
+      tools: toolSchemas,
+      options: { temperature: 0.1, num_predict: 1024 },
+    })) {
+      const m = chunk.message;
+      if (m?.content) {
+        text += m.content;
+        emit({ type: "delta", text: m.content });
+      }
+      if (m?.tool_calls?.length) toolCalls.push(...m.tool_calls);
+      if (chunk.done) {
+        evalCount = chunk.eval_count;
+        evalDurationNs = chunk.eval_duration;
+      }
     }
-    if (m?.tool_calls?.length) toolCalls.push(...m.tool_calls);
+  } finally {
+    trace.endRound({ evalCount, evalDurationNs });
   }
   return { text, toolCalls };
+}
+
+/** Finalize the trace, persist it, and stream it to the client. */
+function finishTrace(
+  trace: TraceBuilder,
+  outcome: TraceOutcome,
+  emit: (e: AgentEvent) => void,
+  error?: string,
+): void {
+  const turn = trace.finish(outcome, error);
+  recordTrace(turn);
+  emit({ type: "trace", trace: turn });
 }
 
 export async function runAgent(
@@ -60,36 +89,48 @@ export async function runAgent(
   emit: (e: AgentEvent) => void,
 ): Promise<void> {
   const ctx: ToolContext = { course, plots: [] };
+  const system = systemPrompt(course);
   const messages: OllamaMessage[] = [
-    { role: "system", content: systemPrompt(course) },
+    { role: "system", content: system },
     ...history,
     { role: "user", content: userInput },
   ];
+  const trace = new TraceBuilder({
+    model: MODEL,
+    systemPromptChars: system.length,
+    userInput,
+  });
 
   let lastText = "";
   try {
     for (let round = 0; round < MAX_ROUNDS; round++) {
-      const { text, toolCalls } = await runTurn(messages, emit);
+      const { text, toolCalls } = await runTurn(messages, emit, trace);
       if (text.trim()) lastText = text;
 
       if (toolCalls.length === 0) {
         // Guard the small-Gemma "empty final answer after a tool round" quirk.
         if (text.trim() !== "") {
           emit({ type: "done", text });
+          finishTrace(trace, "answered", emit);
           return;
         }
         messages.push({ role: "system", content: "State the final answer to the student in plain text now." });
-        const retry = await runTurn(messages, emit);
+        const retry = await runTurn(messages, emit, trace);
         emit({ type: "done", text: retry.text.trim() || "(no answer produced)" });
+        finishTrace(trace, "retry-answered", emit);
         return;
       }
 
       messages.push({ role: "assistant", content: text, tool_calls: toolCalls });
       for (const call of toolCalls) {
         const name = call.function.name;
-        emit({ type: "tool", name, phase: "call", detail: JSON.stringify(call.function.arguments) });
-        const result = dispatchTool(name, call.function.arguments ?? {}, ctx);
-        emit({ type: "tool", name, phase: "result", detail: result });
+        const args = call.function.arguments ?? {};
+        emit({ type: "tool", name, phase: "call", detail: JSON.stringify(args) });
+        const t0 = Date.now();
+        const result = dispatchTool(name, args, ctx);
+        const durationMs = Date.now() - t0;
+        trace.addToolCall(name, args, result, durationMs);
+        emit({ type: "tool", name, phase: "result", detail: result, durationMs });
         messages.push({ role: "tool", tool_name: name, content: result });
       }
       // Emit any graphs this round produced.
@@ -98,7 +139,10 @@ export async function runAgent(
     // Hit the round cap — fall back to the best answer text we streamed, since
     // small Gemma often emits its final prose alongside one last tool call.
     emit({ type: "done", text: lastText.trim() || "Reached the tool-round limit without a final answer." });
+    finishTrace(trace, "round-cap", emit);
   } catch (err) {
-    emit({ type: "error", message: err instanceof Error ? err.message : String(err) });
+    const message = err instanceof Error ? err.message : String(err);
+    emit({ type: "error", message });
+    finishTrace(trace, "error", emit, message);
   }
 }
