@@ -14,6 +14,7 @@ const lessonView = document.getElementById("lesson-view");
 const lessonTitle = document.getElementById("lesson-title");
 const lessonContent = document.getElementById("lesson-content");
 const askBtn = /** @type {HTMLButtonElement} */ (document.getElementById("ask-lesson"));
+const backBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById("back-to-chat"));
 const chatEl = document.getElementById("chat");
 const evidenceEl = document.getElementById("evidence");
 const composerEl = document.getElementById("composer");
@@ -171,6 +172,9 @@ async function openLesson(id) {
   }
   showLessonView();
 }
+
+// Plain exit from the lesson viewer back to the chat (no lesson context armed).
+backBtn?.addEventListener("click", () => backToChat());
 
 askBtn?.addEventListener("click", () => {
   if (!openLessonId) return;
