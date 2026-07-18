@@ -106,6 +106,31 @@ async function ask(message) {
   let answer = "";
   let started = false;
 
+  // Live rendering: run the accumulated answer through the same markdown + KaTeX
+  // pipeline as lessons, throttled so we render at most every ~200ms while tokens
+  // stream. Half-open `$…`/`**` may look plain for a beat; the done-render settles it.
+  let renderTimer = null;
+  function renderBubble() {
+    const md = window.courseNav?.mdToHtml;
+    if (!md) {
+      bubble.textContent = answer;
+      return;
+    }
+    const keep = [...bubble.querySelectorAll(".verdict, .trace-drawer")];
+    bubble.innerHTML = md(answer);
+    bubble.classList.add("md");
+    for (const el of keep) bubble.appendChild(el);
+    renderMath(bubble);
+    chat.scrollTop = chat.scrollHeight;
+  }
+  function scheduleRender() {
+    if (renderTimer) return;
+    renderTimer = setTimeout(() => {
+      renderTimer = null;
+      renderBubble();
+    }, 200);
+  }
+
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -143,8 +168,7 @@ async function ask(message) {
           started = true;
         }
         answer += ev.text;
-        bubble.textContent = answer;
-        chat.scrollTop = chat.scrollHeight;
+        scheduleRender();
         break;
       case "tool":
         if (ev.name === "check_answer" && ev.phase === "result") {
@@ -166,24 +190,17 @@ async function ask(message) {
       case "plot":
         addPlot(ev.spec);
         break;
-      case "done": {
+      case "done":
         if (ev.text && !answer) answer = ev.text;
         history.push({ role: "assistant", content: answer });
-        // Streaming shows plain text; once the turn is done, re-render the answer
-        // with the same markdown renderer the lesson viewer uses. Keep any verdict
-        // badge / trace drawer that tool events already attached to the bubble.
-        const md = window.courseNav?.mdToHtml;
-        if (md && answer) {
-          const keep = [...bubble.querySelectorAll(".verdict, .trace-drawer")];
-          bubble.innerHTML = md(answer);
-          bubble.classList.add("md");
-          for (const el of keep) bubble.appendChild(el);
-        } else if (!answer) {
-          bubble.textContent = "";
+        // Final authoritative render (clears any half-open markdown/math).
+        if (renderTimer) {
+          clearTimeout(renderTimer);
+          renderTimer = null;
         }
-        renderMath(bubble);
+        if (answer) renderBubble();
+        else bubble.textContent = "";
         break;
-      }
       case "error":
         bubble.textContent = `Error: ${ev.message}`;
         break;
