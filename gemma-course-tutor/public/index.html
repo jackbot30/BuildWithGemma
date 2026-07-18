@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gemma Course Tutor</title>
+    <!-- ALL local — zero CDN so it works fully offline. KaTeX vendored under /vendor/katex. -->
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <script defer src="/vendor/katex/katex.min.js"></script>
+    <script defer src="/vendor/katex/contrib/auto-render.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <strong>Gemma Course Tutor</strong>
+        <span class="muted">on-device RAG · offline</span>
+      </div>
+    </header>
+
+    <main id="chat" aria-live="polite">
+      <div class="msg assistant">
+        <div class="bubble">
+          Ask a question about your course and I'll answer using only your course
+          material, citing the sources I used — fully offline.
+        </div>
+      </div>
+    </main>
+
+    <form id="composer">
+      <input id="input" type="text" autocomplete="off" placeholder="e.g. What is a derivative?" />
+      <button id="send" type="submit">Ask</button>
+    </form>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

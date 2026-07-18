@@ -26,20 +26,48 @@ study material never has to leave the device.
 bun + TypeScript, Biome for lint/format. Gemma served locally via **Ollama**
 (`http://localhost:11434`). Config lives in `.env` (see `.env.example`).
 
-## Status
+## Quickstart
 
-🚧 Scaffolding in progress. The copyright boundary (this section) is set up first.
-The RAG index, tutor, and eval harness are being built next — see the plan in the
-project notes.
+```bash
+bun install
+ollama pull nomic-embed-text          # embeddings for retrieval
+ollama pull gemma4:e4b                 # or set GEMMA_MODEL to any local tag
+# put your course pack in course-pack/ (see course-pack/README.md)
+bun run index                          # chunk + embed lessons → ./store/index.json
+bun run tutor "how do I find the distance between two points?"   # CLI
+bun run serve                          # web UI in an Edge --app window (port 8720)
+bun run eval baseline                  # closed-book vs open-book accuracy report
+```
 
-## Planned layout
+## How it works
+
+1. **Index** (`src/rag/`) — lessons are chunked by heading (oversized sections are
+   sub-split to fit the embed model), embedded with `nomic-embed-text`, and stored as a
+   flat JSON vector store (~1200 vectors; the corpus is small, so no DB).
+2. **Tutor** (`src/tutor/`) — a question retrieves the top-k chunks; Gemma answers
+   **only** from that context, preserves `$...$` LaTeX, and cites the source lessons.
+   Available as a CLI and a minimal web UI (KaTeX rendered, vendored offline).
+3. **Grading** (`src/grading/`) — the crux. Normalizes LaTeX (`\frac`, `\sqrt`, `\pi`,
+   `\binom`, `\log_b`…) to mathjs, then grades **numeric** answers by set-comparison
+   within tolerance and **expression** answers by equivalence at random sample points
+   (not `simplify()`). Validated 22/22 against the real answer keys.
+4. **Eval** (`eval/run.ts`) — runs every problem in two modes, **closed-book** (question
+   only) vs **open-book** (question + retrieved context), forces a parseable
+   `ANSWER: <value>` line, grades with the module above, and writes a per-mode accuracy
+   report to `eval-results/` (gitignored). Measures how much the context actually helps.
+
+## Layout
 
 ```
 course-pack/          local-only course material (gitignored; see its README)
 src/
-  grading/            reusable numeric-tolerance + expression-equivalence (the crux)
+  config.ts           all model/endpoint config from env
+  ollama.ts           local chat + embeddings client
+  grading/            LaTeX→mathjs + numeric/expression grading (the crux)
   rag/                chunk → embed → store → retrieve
-  tutor/              RAG chat over Ollama
-eval/                 two-mode (closed-book vs open-book) harness + report
-.env.example          all model/endpoint config
+  tutor/              ask() RAG chat + CLI
+  server.ts           Bun server + SSE, Edge --app window (port 8720)
+public/               vanilla chat UI + vendored KaTeX (offline)
+eval/run.ts           two-mode (closed vs open book) harness + report
+.env.example          model/endpoint config
 ```
