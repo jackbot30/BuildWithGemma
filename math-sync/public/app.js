@@ -188,3 +188,150 @@ form.addEventListener("submit", async (e) => {
     input.focus();
   }
 });
+
+// --- Chat | Evidence tabs -------------------------------------------------
+// Two views share one window: the chat + composer, and a read-only Evidence
+// view backed by /api/eval/results. No run-from-the-UI button on purpose — the
+// demo uses pre-run results (see docs/decisions/hackathon-log.md).
+
+/**
+ * @typedef {{ id:string, question:string, expected:string|string[], got:string, pass:boolean, seconds:number }} ProblemResult
+ * @typedef {{ name:string, model:string, mode:"raw"|"tools", startedAt:string, done:boolean, problems:ProblemResult[], passRate:string, avgSeconds:number|null, note?:string }} Run
+ */
+
+const evidenceView = document.getElementById("evidence");
+const composer = document.getElementById("composer");
+const runsBox = document.getElementById("eval-runs");
+const tabs = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll(".tab")]);
+
+let evidenceLoaded = false;
+
+function showView(view) {
+  const isChat = view !== "evidence";
+  chat.hidden = !isChat;
+  composer.hidden = !isChat;
+  if (evidenceView) evidenceView.hidden = isChat;
+  for (const t of tabs) t.setAttribute("aria-selected", String(t.dataset.view === view));
+  if (view === "evidence" && !evidenceLoaded) loadEvidence();
+}
+
+for (const t of tabs) t.addEventListener("click", () => showView(t.dataset.view ?? "chat"));
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+
+function expectedText(expected) {
+  return Array.isArray(expected) ? expected.join(", ") : String(expected);
+}
+
+/** Build one run card. Failures are shown, never hidden. */
+function renderRun(run) {
+  const card = document.createElement("div");
+  card.className = "run-card";
+
+  const head = document.createElement("div");
+  head.className = "run-head";
+  const title = document.createElement("div");
+  title.className = "run-title";
+  const modeTag = document.createElement("span");
+  modeTag.className = `mode-tag ${run.mode}`;
+  modeTag.textContent = run.mode === "tools" ? "+tools" : "raw";
+  const nameEl = document.createElement("strong");
+  nameEl.textContent = run.name;
+  title.append(modeTag, nameEl);
+  if (run.note) {
+    const quoted = document.createElement("span");
+    quoted.className = "quoted-tag";
+    quoted.textContent = "quoted — not re-run here";
+    title.appendChild(quoted);
+  }
+  if (!run.done) {
+    const running = document.createElement("span");
+    running.className = "running-tag";
+    running.textContent = "in progress…";
+    title.appendChild(running);
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "run-meta muted";
+  const avg = run.avgSeconds == null ? "—" : `${run.avgSeconds}s/problem`;
+  meta.textContent = `${run.model} · ${fmtDate(run.startedAt)} · pass ${run.passRate} · ${avg}`;
+  head.append(title, meta);
+  card.appendChild(head);
+
+  if (run.note) {
+    const note = document.createElement("p");
+    note.className = "run-note";
+    note.textContent = run.note;
+    card.appendChild(note);
+  }
+
+  if (run.problems.length) {
+    const table = document.createElement("table");
+    table.className = "prob-table";
+    const thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th></th><th>Problem</th><th>Expected</th><th>Got</th><th>s</th></tr>";
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const p of run.problems) {
+      const tr = document.createElement("tr");
+      tr.className = p.pass ? "pass" : "fail";
+      const cells = [
+        p.pass ? "✓" : "✗",
+        p.question,
+        expectedText(p.expected),
+        p.got,
+        String(p.seconds),
+      ];
+      for (let i = 0; i < cells.length; i++) {
+        const td = document.createElement("td");
+        td.textContent = cells[i];
+        if (i === 0) td.className = "verdict-cell";
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    card.appendChild(table);
+  }
+
+  return card;
+}
+
+async function loadEvidence() {
+  if (!runsBox) return;
+  evidenceLoaded = true;
+  try {
+    const res = await fetch("/api/eval/results");
+    const data = /** @type {{ runs: Run[] }} */ (await res.json());
+    runsBox.textContent = "";
+    if (!data.runs || data.runs.length === 0) {
+      runsBox.textContent = "No eval runs yet. Run `bun run eval` to generate results.";
+      return;
+    }
+    // Group by model; within a model, raw before +tools so the pair sits side by side.
+    const byModel = new Map();
+    for (const run of data.runs) {
+      if (!byModel.has(run.model)) byModel.set(run.model, []);
+      byModel.get(run.model).push(run);
+    }
+    for (const [model, runs] of byModel) {
+      runs.sort((a, b) => (a.mode === b.mode ? 0 : a.mode === "raw" ? -1 : 1));
+      const group = document.createElement("div");
+      group.className = "run-group";
+      const h = document.createElement("h2");
+      h.textContent = model;
+      group.appendChild(h);
+      const grid = document.createElement("div");
+      grid.className = "run-grid";
+      for (const run of runs) grid.appendChild(renderRun(run));
+      group.appendChild(grid);
+      runsBox.appendChild(group);
+    }
+  } catch (e) {
+    runsBox.textContent = `Could not load results: ${e}`;
+  }
+}

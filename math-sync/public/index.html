@@ -17,6 +17,10 @@
         <strong>Math Sync</strong>
         <span id="course-label" class="muted">loading course…</span>
       </div>
+      <nav class="tabs" aria-label="View">
+        <button type="button" class="tab" data-view="chat" aria-selected="true">Chat</button>
+        <button type="button" class="tab" data-view="evidence" aria-selected="false">Evidence</button>
+      </nav>
       <div class="controls">
         <span id="net-badge" class="badge">checking network…</span>
         <select id="theme" aria-label="Theme">
@@ -36,6 +40,17 @@
         </div>
       </div>
     </main>
+
+    <section id="evidence" hidden aria-live="polite">
+      <div class="evidence-head">
+        <h1>Evidence &amp; Evaluation</h1>
+        <p class="muted">
+          Every answer is graded by the deterministic checker against the answer key —
+          never by Gemma. Runs below come from <code>bun run eval</code>; failures are shown, not hidden.
+        </p>
+      </div>
+      <div id="eval-runs" class="eval-runs">loading results…</div>
+    </section>
 
     <form id="composer">
       <input id="input" type="text" autocomplete="off" placeholder="e.g. Solve x^2 - 5x + 6 = 0" />
