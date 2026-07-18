@@ -1,0 +1,15 @@
+{
+  "runs": [
+    {
+      "name": "Pre-build baseline (Jul 17, quoted)",
+      "model": "gemma4:e4b",
+      "mode": "raw",
+      "startedAt": "2026-07-17T00:00:00.000Z",
+      "done": true,
+      "problems": [],
+      "passRate": "15/15",
+      "avgSeconds": null,
+      "note": "Measured before kickoff on the original 15-problem screening set, 36–105 s/problem, CPU-only. Quoted from the team plan — not re-run in this repo."
+    }
+  ]
+}
