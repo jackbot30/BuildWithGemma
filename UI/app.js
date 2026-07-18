@@ -594,11 +594,119 @@ function renderQuiz(bubble, quiz) {
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+// ---------- orbit-integration-B: Flashcards drawer + SRS ----------
+// Rendering + scheduling live in flashcards.js (window.orbitFlashcards), which
+// imports the shared /srs.js scheduler — no scheduling logic is duplicated here.
+
+const flashDrawer = document.getElementById("flashDrawer");
+const flashPanel = document.getElementById("flashPanel");
+function openFlashcards() {
+  flashDrawer.classList.add("open");
+  if (window.orbitFlashcards) window.orbitFlashcards.renderPanel(flashPanel);
+}
+document.getElementById("flashBtn").onclick = openFlashcards;
+document.getElementById("flashClose").onclick = () => flashDrawer.classList.remove("open");
+
+// ---------- orbit-integration-B: live turn progress strip ----------
+// Driven by SSE "round" + "tool" events. Same idea as math-sync's strip:
+// stage + round n/cap + an elapsed clock, shown only while a turn is in flight.
+
+const progressStrip = document.getElementById("progressStrip");
+const progressStage = document.getElementById("progressStage");
+const progressRound = document.getElementById("progressRound");
+const progressClock = document.getElementById("progressClock");
+let progressTimer = null;
+
+function progressStart() {
+  if (!progressStrip) return;
+  progressStage.textContent = "reading your question…";
+  progressRound.textContent = "";
+  progressClock.textContent = "0s";
+  progressStrip.hidden = false;
+  const t0 = Date.now();
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    progressClock.textContent = Math.round((Date.now() - t0) / 1000) + "s";
+  }, 500);
+}
+function progressSet(stage, round) {
+  if (!progressStrip) return;
+  if (stage) progressStage.textContent = stage;
+  if (round !== undefined) progressRound.textContent = round;
+}
+function progressEnd() {
+  if (!progressStrip) return;
+  progressStrip.hidden = true;
+  clearInterval(progressTimer);
+  progressTimer = null;
+}
+
+// ---------- orbit-integration-B: "What Gemma did" trace drawer ----------
+// Renders the end-of-turn TurnTrace as a collapsible drawer under the answer:
+// rounds, tool calls, verdicts, and honest on-device tok/s. Evidence the model's
+// work is real, not asserted.
+
+function renderTrace(bubble, trace) {
+  if (!trace) return;
+  const drawer = document.createElement("details");
+  drawer.className = "trace-drawer";
+  const summary = document.createElement("summary");
+  const toolCount = (trace.rounds || []).reduce((n, r) => n + (r.toolCalls ? r.toolCalls.length : 0), 0);
+  const tps = typeof trace.tokensPerSec === "number" ? " · " + trace.tokensPerSec.toFixed(1) + " tok/s" : "";
+  summary.textContent =
+    "What Gemma did — " + (trace.rounds ? trace.rounds.length : 0) + " round" +
+    ((trace.rounds && trace.rounds.length === 1) ? "" : "s") +
+    ", " + toolCount + " tool call" + (toolCount === 1 ? "" : "s") + tps;
+  drawer.appendChild(summary);
+
+  const body = document.createElement("div");
+  body.className = "trace-body";
+  (trace.rounds || []).forEach((r) => {
+    const rd = document.createElement("div");
+    rd.className = "trace-round";
+    const head = document.createElement("div");
+    head.className = "trace-round-head";
+    const speed = typeof r.tokensPerSec === "number" ? " · " + r.tokensPerSec.toFixed(1) + " tok/s" : "";
+    head.textContent = "Round " + r.round + " · " + Math.round(r.modelMs || 0) + "ms" + speed;
+    rd.appendChild(head);
+    (r.toolCalls || []).forEach((tc) => {
+      const line = document.createElement("div");
+      line.className = "trace-tool";
+      const detail = typeof tc.result === "string" && tc.result.length > 80
+        ? tc.result.slice(0, 80) + "…" : (tc.result || "");
+      line.textContent = "↳ " + tc.name + (detail ? " — " + detail : "");
+      rd.appendChild(line);
+    });
+    body.appendChild(rd);
+  });
+  if (Array.isArray(trace.verdicts) && trace.verdicts.length) {
+    const v = document.createElement("div");
+    v.className = "trace-verdicts";
+    v.textContent = "verdicts: " + trace.verdicts.join(", ");
+    body.appendChild(v);
+  }
+  const foot = document.createElement("div");
+  foot.className = "trace-foot muted";
+  foot.textContent = "outcome: " + (trace.outcome || "—") + " · runs on-device, nothing left this machine.";
+  body.appendChild(foot);
+
+  drawer.appendChild(body);
+  bubble.appendChild(drawer);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// AbortController for the in-flight turn; the Stop button aborts it, which
+// closes the SSE stream (the server tolerates a client disconnect).
+let chatAbort = null;
+const chatSendBtn = document.getElementById("chatSend");
+const chatStopBtn = document.getElementById("chatStop");
+chatStopBtn.onclick = () => { if (chatAbort) chatAbort.abort(); };
+
 document.getElementById("chatForm").onsubmit = async (e) => {
   e.preventDefault();
   const input = document.getElementById("chatInput");
   const message = input.value.trim();
-  if (!message) return;
+  if (!message || chatAbort) return; // one turn at a time
   input.value = "";
   addMsg("user", message);
   chatHistory.push({ role: "user", content: message });
@@ -608,10 +716,19 @@ document.getElementById("chatForm").onsubmit = async (e) => {
   let answer = "";
   let started = false;
 
+  chatAbort = new AbortController();
+  chatSendBtn.hidden = true;
+  chatStopBtn.hidden = false;
+  progressStart();
+
   const finish = () => {
     bubble.classList.remove("thinking");
     chatHistory.push({ role: "assistant", content: answer });
     chatLog.scrollTop = chatLog.scrollHeight;
+    progressEnd();
+    chatAbort = null;
+    chatSendBtn.hidden = false;
+    chatStopBtn.hidden = true;
   };
 
   let res;
@@ -624,13 +741,24 @@ document.getElementById("chatForm").onsubmit = async (e) => {
         history: chatHistory.slice(0, -1),
         lessonId: currentLessonId || undefined,
       }),
+      signal: chatAbort.signal,
     });
     if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
   } catch (err) {
+    if (chatAbort && chatAbort.signal.aborted) {
+      bubble.classList.remove("thinking");
+      bubble.textContent = "(stopped)";
+      finish();
+      return;
+    }
     bubble.classList.remove("thinking");
     bubble.textContent =
       "The math-sync backend isn't running, so no live tutoring. Start it with " +
       "\"bun run server\" in BuildWithGemma\\math-sync. From local data: " + classStatsSummary();
+    progressEnd();
+    chatAbort = null;
+    chatSendBtn.hidden = false;
+    chatStopBtn.hidden = true;
     return;
   }
 
@@ -652,6 +780,9 @@ document.getElementById("chatForm").onsubmit = async (e) => {
         answer += ev.text;
         setAnswer();
         break;
+      case "round": // orbit-integration-B: progress marker
+        progressSet("thinking…", "round " + ev.round + "/" + ev.cap);
+        break;
       case "tool":
         if (ev.name === "verify_solution" && ev.phase === "result") {
           addVerdict(bubble, ev.detail.startsWith("VERIFIED"),
@@ -662,6 +793,7 @@ document.getElementById("chatForm").onsubmit = async (e) => {
           addVerdict(bubble, ev.detail.startsWith("CORRECT"),
             ev.detail.startsWith("CORRECT") ? "checked against the answer key" : "check failed");
         } else if (ev.phase === "call") {
+          progressSet("running " + ev.name + "…"); // orbit-integration-B: visible tool use
           addToolLine(bubble, "↳ " + ev.name + " · " +
             (ev.detail.length > 80 ? ev.detail.slice(0, 80) + "…" : ev.detail));
         }
@@ -670,19 +802,23 @@ document.getElementById("chatForm").onsubmit = async (e) => {
         if (!started) setAnswer();
         renderQuiz(bubble, ev.quiz);
         break;
+      case "flashcards": // orbit-integration-B: render deck + save to panel
+        if (!started) setAnswer();
+        if (window.orbitFlashcards) window.orbitFlashcards.renderInChat(bubble, ev.deck);
+        break;
       case "plot":
         addToolLine(bubble, "(graph available in the Math Sync app window)");
         break;
+      case "trace": // orbit-integration-B: "What Gemma did" drawer
+        renderTrace(bubble, ev.trace);
+        break;
       case "done":
         if (ev.text && !answer) { answer = ev.text; setAnswer(); }
-        finish();
         break;
       case "error":
         answer = answer || "Error: " + ev.message;
         setAnswer();
-        finish();
         break;
-      // "trace" events are for the backend's drawer; skipped here.
     }
   };
 
@@ -702,7 +838,15 @@ document.getElementById("chatForm").onsubmit = async (e) => {
         if (line) handleEvent(JSON.parse(line));
       }
     }
+    finish();
   } catch (err) {
+    // orbit-integration-B: Stop button aborts the fetch -> reader.read() rejects.
+    if (chatAbort && chatAbort.signal.aborted) {
+      if (!answer) { answer = "(stopped)"; setAnswer(); }
+      else { addToolLine(bubble, "(stopped)"); }
+      finish();
+      return;
+    }
     if (!answer) { answer = "Connection lost mid-answer."; setAnswer(); }
     finish();
   }
