@@ -4,6 +4,8 @@
  * Units come from the syllabus: every `##` section that links to lessons/*.md
  * becomes a unit, in syllabus order. Conventions handled:
  *  - a lone generic "## Lessons" heading (sample-course shape) takes the H1 title
+ *  - Buzz-export shape: no links at all, but `## Unit N:` headings + lesson files
+ *    named <unit>-<lesson>-<slug>.md → group by id prefix, numeric order
  *  - lessons on disk but never referenced land in a trailing "More lessons" unit
  *  - no syllabus / no links at all → one unit with every loaded lesson
  * Lesson titles always come from the loaded lesson file, not the link text.
@@ -63,6 +65,28 @@ export function buildOutline(syllabus: string, lessons: Lesson[]): OutlineUnit[]
       title: !s.heading || /^lessons$/i.test(s.heading) ? courseTitle : s.heading,
       lessons: s.ids.map(toLesson),
     }));
+
+  // Buzz-export shape: `## Unit N: …` headings but plain-text bullets, no links.
+  // Group lessons by their `<unitN>-` id prefix, in syllabus heading order,
+  // numerically within a unit (10-2 before 10-11).
+  if (units.length === 0) {
+    const UNIT_HEADING = /^Unit\s+(\d+)\b/i;
+    const LESSON_ID = /^(\d+)-(\d+)\b/;
+    for (const s of sections) {
+      const unitNo = s.heading.match(UNIT_HEADING)?.[1];
+      if (!unitNo) continue;
+      const members = lessons
+        .filter((l) => l.id.match(LESSON_ID)?.[1] === unitNo && !seen.has(l.id))
+        .sort((a, b) => Number(a.id.match(LESSON_ID)?.[2]) - Number(b.id.match(LESSON_ID)?.[2]));
+      if (members.length === 0) continue;
+      for (const l of members) seen.add(l.id);
+      units.push({
+        // Strip trailing decorations like "👈 **current unit**" from the heading.
+        title: s.heading.replace(/\s*👈.*$/u, "").trim(),
+        lessons: members.map((l) => ({ id: l.id, title: l.title })),
+      });
+    }
+  }
 
   const leftover = lessons.filter((l) => !seen.has(l.id));
   if (units.length === 0) {

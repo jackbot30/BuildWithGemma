@@ -75,6 +75,42 @@ describe("buildOutline", () => {
     expect(units[1]?.lessons.map((l) => l.id)).toEqual(["02-quadratics"]);
   });
 
+  test("real-course shape: '## Unit N:' headings, no links — group by lesson-id unit prefix", () => {
+    // The Buzz-exported syllabus lists lessons as plain bullets; lesson files are
+    // named <unit>-<lesson>-<slug>.md. Units come from the headings, membership
+    // from the id prefix, ordered numerically (10-2 before 10-11).
+    const u1a = lesson("1-1-the-coordinate-plane", "1.1 The Coordinate Plane");
+    const u1b = lesson("1-2-distance-and-midpoint", "1.2 Distance and Midpoint");
+    const u10a = lesson("10-2-sine-cosine", "10.2 Sine and Cosine");
+    const u10b = lesson("10-11-inverse-trig", "10.11 Inverse Trigonometric Functions");
+    const extra = lesson("appendix-glossary", "Glossary");
+    const syllabus = [
+      "# MATH 056 — Course Outline",
+      "",
+      "## Orientation",
+      "- Course Introduction",
+      "",
+      "## Unit 10: Trigonometric Functions",
+      "- **10.2 Sine and Cosine**",
+      "",
+      "## Unit 1: Coordinate Geometry  👈 **current unit**",
+      "- **1.1 The Coordinate Plane**",
+    ].join("\n");
+
+    const units = buildOutline(syllabus, [u1a, u1b, u10b, u10a, extra]);
+    expect(units.map((u) => u.title)).toEqual([
+      "Unit 10: Trigonometric Functions",
+      "Unit 1: Coordinate Geometry",
+      "More lessons",
+    ]);
+    expect(units[0]?.lessons.map((l) => l.id)).toEqual(["10-2-sine-cosine", "10-11-inverse-trig"]);
+    expect(units[1]?.lessons.map((l) => l.id)).toEqual([
+      "1-1-the-coordinate-plane",
+      "1-2-distance-and-midpoint",
+    ]);
+    expect(units[2]?.lessons.map((l) => l.id)).toEqual(["appendix-glossary"]);
+  });
+
   test("no syllabus (or no links): single unit with all lessons in load order", () => {
     expect(buildOutline("", [L1, L2])).toEqual([
       {
