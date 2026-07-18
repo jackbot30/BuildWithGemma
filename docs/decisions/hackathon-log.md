@@ -171,6 +171,42 @@ agent loop; plot sanitizes model-supplied domains (inverted → swap, degenerate
 default); lookup results strip image markdown before reaching the model (~fewer
 wasted tokens per turn on a CPU-bound model).
 
+## 2026-07-18 · Boot fails loudly if Ollama is unreachable
+
+`server.ts` did a fire-and-forget `prewarm()`, so a machine with Ollama down (or the
+model not pulled) still booted and served the UI — the failure surfaced only as a
+silent hang on the first turn, the worst possible moment in a judged airplane-mode
+demo. Now `assertOllamaReachable()` (a pure, fetch-injectable, unit-tested helper in
+`src/ollama.ts`) probes `/api/version` + `/api/tags` at boot: unreachable → print an
+actionable message (`ollama serve` / `ollama pull`) and `process.exit(1)`; reachable
+but model missing → warn, don't block. The reuse-running-instance path is unchanged.
+Chose fail-fast at boot over a mid-turn guard because we pre-warm before the demo
+slot — better to know at launch than mid-answer.
+
+## 2026-07-18 · gemma-course-tutor ships a self-written sample course + fallback
+
+On a fresh clone the annex had no runnable course — the real 100-lesson pack is
+gitignored for copyright, leaving only `course-pack/README.md`, so `bun run index`/
+`tutor` errored. Options: leave it annex-only (judges can't run it), commit the real
+pack (copyright — non-starter), or ship a small original sample. We ship
+`sample-course/` (3 self-written lessons + a 2-problem eval set) and add
+`resolveCoursePackDir()` (pure, unit-tested 6/6): explicit `COURSE_PACK_DIR` wins,
+else the private pack when it has lessons, else the bundled sample. Jack's machine
+still uses the real pack automatically (it has lessons); only a clean clone falls
+back. The `.gitignore` copyright rules are untouched.
+
+## 2026-07-18 · Deadline-day polish: production styling for all "temporary" tabs
+
+Every tab added during the overnight build (quiz, flashcards, calculator, course-nav,
+trace) shipped with `TEMPORARY UI / restyle pending` comments and placeholder styling
+— visible in source and a hackathon Enablement risk. This pass restyled all five to
+production, matching the chat/verify-badge system: elevated card surfaces
+(`--bubble-ai` + a subtle shadow), accent focus rings, hover transitions — kept
+strictly token-driven so all four themes still work — and removed the TEMPORARY
+labels. CSS + comments only; no DOM or behaviour changes. Chose to polish all five now
+(Jack's call) rather than leave the three non-quiz tabs for a teammate, since the
+whole UI is on screen for judges.
+
 ## 2026-07-18 · Flashcards get a real Anki-style SM-2 scheduler, fully client-side
 
 Study mode in the Flashcards tab uses a compact-but-faithful Anki scheduler
