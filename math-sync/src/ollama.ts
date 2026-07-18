@@ -35,10 +35,13 @@ export interface ToolSchema {
   };
 }
 
-interface OllamaChunk {
+export interface OllamaChunk {
   message?: OllamaMessage;
   done: boolean;
   done_reason?: string;
+  /** Final chunk only: tokens generated + generation time in ns (feeds the trace's tok/s). */
+  eval_count?: number;
+  eval_duration?: number;
 }
 
 export interface ChatBody {

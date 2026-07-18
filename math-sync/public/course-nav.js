@@ -107,6 +107,11 @@ function showLessonView() {
   if (chatEl) chatEl.hidden = true;
   if (evidenceEl) evidenceEl.hidden = true;
   if (composerEl) composerEl.hidden = true;
+  // Views merged from sibling branches — hide them too when opening a lesson.
+  const calculatorEl = document.getElementById("calculator");
+  if (calculatorEl) calculatorEl.hidden = true;
+  const traceEl = document.getElementById("trace-view");
+  if (traceEl) traceEl.hidden = true;
   if (lessonView) lessonView.hidden = false;
   for (const t of document.querySelectorAll(".tab")) t.setAttribute("aria-selected", "false");
 }

@@ -21,6 +21,8 @@ Thumbs.db
 
 # Logs / caches
 *.log
+# per-turn Gemma trace JSONL (src/trace.ts) — covered by *.log, listed for clarity
+traces.log
 .cache/
 coverage/
 
