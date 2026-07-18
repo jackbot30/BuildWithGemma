@@ -1,0 +1,14 @@
+[
+  {
+    "id": "s01",
+    "question": "Find the distance between the points $P(-2, 1)$ and $Q(1, 5)$.",
+    "expected": "5",
+    "type": "numeric"
+  },
+  {
+    "id": "s02",
+    "question": "Find the slope of the line through $A(-1, 2)$ and $B(2, 8)$.",
+    "expected": "2",
+    "type": "numeric"
+  }
+]

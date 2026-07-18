@@ -11,7 +11,9 @@ Everything runs locally. No course content is ever sent to a remote service.
 This app runs over a **course pack** — a syllabus, lesson markdown, and an eval set.
 The pack used to develop it is **copyrighted personal study material** (BYU Independent
 Study MATH 056) and is **deliberately excluded from git**. If you cloned this repo, the
-`course-pack/` folder is empty except for an explanation.
+`course-pack/` folder is empty except for an explanation. So the app ships a small,
+self-written **`sample-course/`** (3 original lessons) and falls back to it automatically
+when `course-pack/` has no lessons — a fresh clone runs out of the box.
 
 - **Why it's excluded and what belongs there:** [`course-pack/README.md`](course-pack/README.md)
 - **The `.gitignore` rule** keeps every file under `course-pack/` out of version control
@@ -32,7 +34,7 @@ bun + TypeScript, Biome for lint/format. Gemma served locally via **Ollama**
 bun install
 ollama pull nomic-embed-text          # embeddings for retrieval
 ollama pull gemma4:e4b                 # or set GEMMA_MODEL to any local tag
-# put your course pack in course-pack/ (see course-pack/README.md)
+# (optional) a pack in course-pack/ overrides the bundled sample-course/
 bun run index                          # chunk + embed lessons → ./store/index.json
 bun run tutor "how do I find the distance between two points?"   # CLI
 bun run serve                          # web UI in an Edge --app window (port 8720)
@@ -60,6 +62,7 @@ bun run eval baseline                  # closed-book vs open-book accuracy repor
 
 ```
 course-pack/          local-only course material (gitignored; see its README)
+sample-course/        bundled sample course (3 original lessons; fresh-clone fallback)
 src/
   config.ts           all model/endpoint config from env
   ollama.ts           local chat + embeddings client
