@@ -49,37 +49,17 @@ themeSel.addEventListener("change", () => {
   syncOrbitStars();
 });
 
-// --- Orbit theme: optional star-video backdrop (the one behavior-adjacent add).
-// Lazily injects a fixed, local <video> (assets/stars.mp4) the first time the
-// Orbit theme is active, and only then. Every other theme is untouched: no
-// element is created, and if it already exists it's paused + faded out via the
-// `ready` class. A CSS starfield in style.css is the always-on fallback, so the
-// space look survives even if the video can't play (autoplay blocked, etc.). ---
+// --- Orbit theme: steady-state is a solid black background (no video backdrop).
+// The looping stars.mp4 was too heavy on CPU; the cool star treatment now lives
+// only in the one-time blastoff intro. Kept as a no-op that also tears down any
+// existing backdrop video, so the theme-change and boot call sites stay valid. ---
 /** @type {HTMLVideoElement | null} */
 let orbitStars = null;
 function syncOrbitStars() {
-  const isOrbit = document.documentElement.dataset.theme === "orbit";
-  if (!isOrbit) {
-    if (orbitStars) {
-      orbitStars.classList.remove("ready");
-      orbitStars.pause();
-    }
-    return;
+  if (orbitStars) {
+    orbitStars.remove();
+    orbitStars = null;
   }
-  if (!orbitStars) {
-    orbitStars = document.createElement("video");
-    orbitStars.id = "orbit-stars";
-    orbitStars.src = "/assets/stars.mp4";
-    orbitStars.muted = true;
-    orbitStars.loop = true;
-    orbitStars.autoplay = true;
-    orbitStars.playsInline = true;
-    orbitStars.setAttribute("aria-hidden", "true");
-    orbitStars.addEventListener("playing", () => orbitStars?.classList.add("ready"), { once: true });
-    document.body.prepend(orbitStars);
-  }
-  orbitStars.classList.add("ready");
-  void orbitStars.play().catch(() => {}); // CSS starfield covers autoplay refusal
 }
 syncOrbitStars();
 

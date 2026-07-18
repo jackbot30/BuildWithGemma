@@ -492,8 +492,8 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
        behind the whole app without touching layout. --- */
 [data-theme="orbit"] body {
   position: relative;
-  /* Aurora / gradient-mesh lighting (2026): several luminous, muted washes over
-     a deep base, so panels and text pop against a balanced, high-contrast ground. */
+  /* Cool dark-space wash — a STATIC gradient (no animation), so it paints once and
+     never repaints. That's the whole lag fix: the look stays, the churn is gone. */
   background:
     radial-gradient(1100px 680px at 80% -10%, rgba(125, 91, 166, 0.34), transparent 60%),
     radial-gradient(920px 640px at 4% 2%, rgba(58, 92, 190, 0.22), transparent 58%),
@@ -502,6 +502,9 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
     var(--bg);
   background-attachment: fixed;
 }
+/* Static starfield (two parallax layers of gradient "stars"). NO animation — a
+   still starfield reads as cool space and paints once, so there's zero
+   continuous-repaint lag (the drift animation + the video were what churned). */
 [data-theme="orbit"] body::before {
   content: "";
   position: fixed;
@@ -516,7 +519,6 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
     radial-gradient(1.2px 1.2px at 200px 180px, rgba(243, 237, 242, 0.8), transparent),
     radial-gradient(1.8px 1.8px at 300px 260px, rgba(242, 185, 80, 0.8), transparent);
   background-size: 340px 340px;
-  animation: orbit-drift 90s linear infinite;
 }
 [data-theme="orbit"] body::after {
   content: "";
@@ -530,12 +532,7 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
     radial-gradient(1px 1px at 180px 40px, rgba(243, 237, 242, 0.45), transparent),
     radial-gradient(1px 1px at 130px 200px, rgba(185, 139, 224, 0.6), transparent);
   background-size: 220px 220px;
-  animation: orbit-drift 150s linear infinite;
   opacity: 0.7;
-}
-@keyframes orbit-drift {
-  from { background-position: 0 0; }
-  to   { background-position: 0 -1400px; }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-theme="orbit"] body::before,
@@ -656,10 +653,10 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
   color: transparent;
   filter: drop-shadow(0 12px 44px rgba(125, 91, 166, 0.55));
 }
-#orbit-intro.launching .orbit-intro-title { transform: translateY(-44vh) scale(1.35); opacity: 0; filter: blur(3px); }
+#orbit-intro.launching .orbit-intro-title { opacity: 0; }
 
-/* Blastoff: the whole overlay lifts and fades. */
-#orbit-intro.launching { opacity: 0; transform: translateY(-16vh); filter: blur(2px); }
+/* Exit: the whole overlay just fades out to reveal the starfield (no lift/blur). */
+#orbit-intro.launching { opacity: 0; }
 #orbit-intro.launching video { opacity: 0; transform: scale(1.25); filter: blur(4px); }
 #orbit-intro.gone { display: none !important; }
 
