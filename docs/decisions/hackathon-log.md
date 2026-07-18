@@ -181,3 +181,27 @@ due reviews → capped new). All state lives in localStorage with the decks — 
 server surface, zero risk to the demo path, consistent with "nothing leaves the
 machine." Not implemented on purpose: fuzz intervals, custom deck options, sibling
 burying — demo-day scope.
+
+
+## 2026-07-18 · Variant A: Orbit as the front end — close the gap inside UI/, proxy the shared modules
+
+Hackathon bake-off variant A keeps Orbit's designed two-process architecture (node
+proxy on :8000 -> math-sync backend on :3111) rather than folding Orbit into
+math-sync's server. To reach feature parity without duplicating logic, the Orbit
+proxy now forwards the shared browser modules `/srs.js` and `/missed.js` to the
+backend, so the SRS scheduler and the missed-question rule keep exactly one home
+(both already covered by math-sync/src/{srs,missed}.test.ts). Orbit's new
+`UI/flashcards.js` (ES module) imports those; `UI/trace.js` ports the "What Gemma
+did" drawer; `UI/app.js` gains a live progress strip (round + tool stages + clock),
+a Stop button (AbortController), and handlers for the `flashcards` and `trace` SSE
+events. Quiz cards keep grading through the backend's `POST /api/quiz/answer` — no
+grading logic in the client.
+
+Why this way: single-source over copy-paste (the airplane-mode + clean-history rules
+punish drift between two copies of a scheduler); Orbit's space-themed UX and its own
+points/streak system survive intact; the backend stays byte-for-byte unchanged
+(gate: 179 tests green, tsc clean). Cost: two processes to start for a demo, and the
+progress/trace live in the chat drawer rather than dedicated tabs (a polish gap, not
+a parity gap). Not closed: a standalone Trace tab and lesson-image rendering could not
+be exercised because sample-course ships no images (the mdToHtml image path is present
+and unchanged).
