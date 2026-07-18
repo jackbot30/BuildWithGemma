@@ -22,7 +22,7 @@ import { detectComposerIntent } from "./src/intent.ts"; // feat/flashcards + fea
 const PORT = Number(process.env.PORT) || 8710;
 const HOST = "127.0.0.1";
 const PUBLIC = resolve(import.meta.dir, "public");
-const IDLE_EXIT_MS = 30_000;
+const IDLE_EXIT_MS = Number(process.env.MATH_SYNC_IDLE_MS) || 30_000;
 const NEVER_OPENED_EXIT_MS = 10 * 60_000;
 const wantOpen = process.argv.includes("--open");
 
