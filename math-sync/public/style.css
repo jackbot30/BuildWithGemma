@@ -591,23 +591,6 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 }
 #orbit-intro.launching .orbit-intro-title { transform: translateY(-44vh) scale(1.35); opacity: 0; filter: blur(3px); }
 
-/* T-minus countdown numbers. */
-.oi-count {
-  position: absolute;
-  z-index: 3;
-  font-size: clamp(64px, 16vw, 184px);
-  font-weight: 800;
-  color: #f4eef7;
-  opacity: 0;
-  text-shadow: 0 0 52px rgba(185, 139, 224, 0.7);
-}
-.oi-count.tick { animation: oi-tick 0.62s ease-out; }
-@keyframes oi-tick {
-  0%   { opacity: 0; transform: scale(1.6); filter: blur(6px); }
-  24%  { opacity: 1; filter: blur(0); }
-  100% { opacity: 0; transform: scale(0.7); }
-}
-
 /* Blastoff: the whole overlay lifts and fades. */
 #orbit-intro.launching { opacity: 0; transform: translateY(-16vh); filter: blur(2px); }
 #orbit-intro.launching video { opacity: 0; transform: scale(1.25); filter: blur(4px); }
@@ -623,7 +606,7 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
   .oi-warp,
   .oi-glow,
   .orbit-intro-title { transition: opacity 0.4s ease; animation: none; }
-  .oi-warp, .oi-glow, .oi-count { display: none; }
+  .oi-warp, .oi-glow { display: none; }
 }
 
 /* --- Panels: translucent plum with blur so the starfield reads through.

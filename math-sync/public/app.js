@@ -79,7 +79,6 @@ function runOrbitIntro() {
   const video = /** @type {HTMLVideoElement | null} */ (
     document.getElementById("orbit-intro-video")
   );
-  const count = document.getElementById("oi-count");
   void video?.play().catch(() => {});
 
   const end = () => {
@@ -88,30 +87,15 @@ function runOrbitIntro() {
   };
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    intro.classList.add("launching"); // quick fade, no countdown/warp
+    intro.classList.add("launching"); // quick fade, no warp
     window.setTimeout(end, 500);
     return;
   }
 
-  const seq = ["3", "2", "1"];
-  const step = 620;
-  let i = 0;
-  const tick = () => {
-    if (count) {
-      count.textContent = seq[i] ?? "";
-      count.classList.remove("tick");
-      void count.offsetWidth; // force reflow so the tick animation restarts
-      count.classList.add("tick");
-    }
-    i += 1;
-    if (i < seq.length) window.setTimeout(tick, step);
-  };
-  tick();
-
-  const ignite = seq.length * step; // countdown done → light the engines
-  window.setTimeout(() => intro.classList.add("ignite"), ignite);
-  window.setTimeout(() => intro.classList.add("launching"), ignite + 420);
-  window.setTimeout(end, ignite + 420 + 1150);
+  const dwell = 1400; // let the wordmark settle, then light the engines
+  window.setTimeout(() => intro.classList.add("ignite"), dwell);
+  window.setTimeout(() => intro.classList.add("launching"), dwell + 460);
+  window.setTimeout(end, dwell + 460 + 1150);
 }
 runOrbitIntro();
 
