@@ -25,6 +25,11 @@ export function calculateExpression(exprRaw: string): string {
     if (typeof value === "function") {
       return "Error: that defines a function, not a value — pass a concrete expression like '2^3 + 1'";
     }
+    // Guard non-finite results (Infinity / -Infinity / NaN, e.g. division by
+    // zero) — "= Infinity" is misleading in a tutor; surface it as an error.
+    if (typeof value === "number" && !Number.isFinite(value)) {
+      return "Error: result is not a finite number (division by zero?)";
+    }
     return math.format(value, FORMAT);
   } catch (err) {
     return `Error: ${err instanceof Error ? err.message : String(err)}`;

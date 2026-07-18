@@ -54,7 +54,13 @@ describe("calculateExpression", () => {
     expect(r.startsWith("Error:")).toBe(true);
   });
 
-  test("division by zero yields Infinity as a string (mathjs semantics)", () => {
-    expect(calculateExpression("1/0")).toBe("Infinity");
+  test("non-finite results (division by zero) return an explicit Error, not Infinity", () => {
+    const r = calculateExpression("1/0");
+    expect(r).toBe("Error: result is not a finite number (division by zero?)");
+  });
+
+  test("-Infinity and NaN also return the non-finite Error", () => {
+    expect(calculateExpression("-1/0")).toBe("Error: result is not a finite number (division by zero?)");
+    expect(calculateExpression("0/0")).toBe("Error: result is not a finite number (division by zero?)");
   });
 });

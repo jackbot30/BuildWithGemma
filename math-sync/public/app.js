@@ -97,6 +97,9 @@ function addPlot(spec) {
   chat.scrollTop = chat.scrollHeight;
 }
 
+/** Set while a chat turn is streaming; lets the Stop button abort the fetch. */
+let activeController = null;
+
 async function ask(message) {
   history.push({ role: "user", content: message });
   addBubble("user").textContent = message;
@@ -105,6 +108,7 @@ async function ask(message) {
   bubble.innerHTML = '<span class="spinner"></span>';
   let answer = "";
   let started = false;
+  let stopped = false;
 
   // Live rendering: run the accumulated answer through the same markdown + KaTeX
   // pipeline as lessons, throttled so we render at most every ~200ms while tokens
@@ -131,12 +135,25 @@ async function ask(message) {
     }, 200);
   }
 
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    // course-nav (feat/course-nav): one-shot lesson context for this turn.
-    body: JSON.stringify({ message, history, lessonId: window.courseNav?.takeLessonContext?.() }),
-  });
+  // AbortController so the Stop button can cancel this turn client-side.
+  const controller = new AbortController();
+  activeController = controller;
+
+  let res;
+  try {
+    res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      // course-nav (feat/course-nav): one-shot lesson context for this turn.
+      body: JSON.stringify({ message, history, lessonId: window.courseNav?.takeLessonContext?.() }),
+    });
+  } catch (e) {
+    // Abort or network failure before the stream opened.
+    if (controller.signal.aborted) markStopped();
+    else bubble.textContent = `Error: ${e}`;
+    return;
+  }
   if (!res.body) {
     bubble.textContent = "No response stream.";
     return;
@@ -145,19 +162,45 @@ async function ask(message) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    let sep;
-    while ((sep = buf.indexOf("\n\n")) !== -1) {
-      const frame = buf.slice(0, sep);
-      buf = buf.slice(sep + 2);
-      const line = frame.replace(/^data:\s*/, "");
-      if (!line) continue;
-      const ev = JSON.parse(line);
-      handleEvent(ev);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let sep;
+      while ((sep = buf.indexOf("\n\n")) !== -1) {
+        const frame = buf.slice(0, sep);
+        buf = buf.slice(sep + 2);
+        const line = frame.replace(/^data:\s*/, "");
+        if (!line) continue;
+        const ev = JSON.parse(line);
+        handleEvent(ev);
+      }
     }
+  } catch (e) {
+    // Reading the stream was aborted (Stop) or the connection dropped.
+    if (controller.signal.aborted) markStopped();
+    else bubble.textContent = `Error: ${e}`;
+    return;
+  }
+
+  /** Append a muted "— stopped —" note to the current bubble on abort. */
+  function markStopped() {
+    if (stopped) return;
+    stopped = true;
+    if (renderTimer) {
+      clearTimeout(renderTimer);
+      renderTimer = null;
+    }
+    if (answer) renderBubble();
+    else if (!started) bubble.innerHTML = "";
+    const note = document.createElement("span");
+    note.className = "stopped-note muted";
+    note.textContent = " — stopped —";
+    bubble.appendChild(note);
+    // Keep whatever partial answer streamed in the history so context survives.
+    if (answer) history.push({ role: "assistant", content: answer });
+    chat.scrollTop = chat.scrollHeight;
   }
 
   function handleEvent(ev) {
@@ -212,18 +255,39 @@ async function ask(message) {
   renderMath(bubble);
 }
 
+/** Flip the send button between "Ask" (submit) and "Stop" (abort) modes. */
+function setStreaming(streaming) {
+  if (streaming) {
+    sendBtn.textContent = "Stop";
+    sendBtn.type = "button"; // don't re-submit the form while streaming
+    sendBtn.disabled = false; // Stop must stay clickable
+    input.disabled = true;
+  } else {
+    sendBtn.textContent = "Ask";
+    sendBtn.type = "submit";
+    sendBtn.disabled = false;
+    input.disabled = false;
+  }
+}
+
+// Clicking the button while it's in "Stop" mode aborts the active turn. (In
+// "Ask" mode it's type=submit and the form's submit handler runs instead.)
+sendBtn.addEventListener("click", () => {
+  if (sendBtn.type === "button" && activeController) activeController.abort();
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const message = input.value.trim();
   if (!message) return;
   input.value = "";
-  sendBtn.disabled = true;
-  input.disabled = true;
+  setStreaming(true);
   try {
     await ask(message);
   } finally {
-    sendBtn.disabled = false;
-    input.disabled = false;
+    // Always restore the composer — abort/network error must never leave it stuck.
+    activeController = null;
+    setStreaming(false);
     input.focus();
   }
 });

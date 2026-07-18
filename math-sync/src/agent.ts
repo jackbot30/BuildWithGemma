@@ -20,7 +20,7 @@ export type AgentEvent =
   | { type: "quiz"; quiz: QuizClientView } // feat/quiz — no expected answers, ever
   | { type: "done"; text: string }
   | { type: "trace"; trace: TurnTrace }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string; detail?: string };
 
 const MAX_ROUNDS = 5;
 // Test knob only: lets smoke tests cap generation cheaply on a shared CPU.
@@ -48,7 +48,9 @@ async function runTurn(
   messages: OllamaMessage[],
   emit: (e: AgentEvent) => void,
   trace: TraceBuilder,
+  opts: { withTools?: boolean } = {},
 ): Promise<{ text: string; toolCalls: ToolCall[] }> {
+  const withTools = opts.withTools ?? true;
   let text = "";
   const toolCalls: ToolCall[] = [];
   let evalCount: number | undefined;
@@ -57,7 +59,9 @@ async function runTurn(
   try {
     for await (const chunk of streamChat({
       messages,
-      tools: toolSchemas,
+      // The empty-answer retry runs WITHOUT tool schemas: we only want plain
+      // prose here, and offering tools invites another zombie tool round.
+      ...(withTools ? { tools: toolSchemas } : {}),
       options: { temperature: 0.1, num_predict: NUM_PREDICT },
     })) {
       const m = chunk.message;
@@ -94,6 +98,13 @@ export async function runAgent(
   userInput: string,
   course: CoursePack,
   emit: (e: AgentEvent) => void,
+  /**
+   * What to record in the trace as the student's question. When a lesson is
+   * open, `userInput` is a lesson-prefixed blob sent to the model; pass the raw
+   * student message here so the Trace tab shows the real question. Defaults to
+   * `userInput` when the two are the same.
+   */
+  displayInput?: string,
 ): Promise<void> {
   const ctx: ToolContext = { course, plots: [], quizzes: [] }; // feat/quiz: quizzes
   const system = systemPrompt(course);
@@ -105,7 +116,7 @@ export async function runAgent(
   const trace = new TraceBuilder({
     model: MODEL,
     systemPromptChars: system.length,
-    userInput,
+    userInput: displayInput ?? userInput,
   });
 
   let lastText = "";
@@ -122,7 +133,7 @@ export async function runAgent(
           return;
         }
         messages.push({ role: "system", content: "State the final answer to the student in plain text now." });
-        const retry = await runTurn(messages, emit, trace);
+        const retry = await runTurn(messages, emit, trace, { withTools: false });
         emit({ type: "done", text: retry.text.trim() || "(no answer produced)" });
         finishTrace(trace, "retry-answered", emit);
         return;
@@ -150,8 +161,15 @@ export async function runAgent(
     emit({ type: "done", text: lastText.trim() || "Reached the tool-round limit without a final answer." });
     finishTrace(trace, "round-cap", emit);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    emit({ type: "error", message });
-    finishTrace(trace, "error", emit, message);
+    const raw = err instanceof Error ? err.message : String(err);
+    // A model-down failure (Ollama offline / connection refused) is the most
+    // likely error on the demo machine — translate it into a friendly, actionable
+    // message and keep the raw text in `detail` for the trace/debugging.
+    const modelDown = /ollama|fetch failed|failed to fetch|ECONNREFUSED|econnrefused|connect/i.test(raw);
+    const message = modelDown
+      ? "The on-device model isn't responding — make sure Ollama is running (ollama serve) and the model is pulled."
+      : raw;
+    emit(modelDown ? { type: "error", message, detail: raw } : { type: "error", message });
+    finishTrace(trace, "error", emit, raw);
   }
 }

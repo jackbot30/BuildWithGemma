@@ -72,7 +72,13 @@ const startedAt = Date.now();
 const json = (data: unknown, status = 200) => Response.json(data, { status });
 
 function sse(controller: ReadableStreamDefaultController<Uint8Array>, event: AgentEvent): void {
-  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+  // A disconnected client (Stop button / closed window) makes enqueue throw once
+  // the stream is closed. Swallow it so it can't bubble into the agent loop.
+  try {
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+  } catch {
+    // Client is gone — nothing to send to. The agent loop keeps its own state.
+  }
 }
 
 async function handleChat(req: Request): Promise<Response> {
@@ -84,7 +90,11 @@ async function handleChat(req: Request): Promise<Response> {
   }
   const message = typeof body.message === "string" ? body.message : "";
   if (!message.trim()) return json({ error: "message is required" }, 400);
-  const history = Array.isArray(body.history) ? (body.history as OllamaMessage[]) : [];
+  // Cap history to the last 6 messages before running the agent: on CPU the
+  // per-turn latency and prompt-eval cost grow with context length, and long
+  // transcripts push the small model toward drift. Recent turns are what matter.
+  const allHistory = Array.isArray(body.history) ? (body.history as OllamaMessage[]) : [];
+  const history = allHistory.slice(-6);
 
   // --- course-nav (feat/course-nav): "Ask about this lesson" ---------------
   // If the client sent a lessonId, prepend that lesson's content to this turn
@@ -98,8 +108,15 @@ async function handleChat(req: Request): Promise<Response> {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      await runAgent(history, turn, course, (e) => sse(controller, e));
-      controller.close();
+      // Trace records the student's raw message, not the lesson-prefixed blob
+      // (`turn`) that the model receives.
+      await runAgent(history, turn, course, (e) => sse(controller, e), message);
+      // close() throws if the client already disconnected — ignore it.
+      try {
+        controller.close();
+      } catch {
+        // Stream already torn down by the client.
+      }
     },
   });
   return new Response(stream, {
@@ -110,7 +127,6 @@ async function handleChat(req: Request): Promise<Response> {
 async function handleEval(): Promise<Response> {
   // Deterministic self-check demo: verify each answer key against itself (sanity)
   // and expose the problem set. Full with-tools-vs-raw run is eval/run.ts (CLI).
-  // TODO(sat): wire this endpoint to run the model live and return the pass table.
   const file = Bun.file(resolve(import.meta.dir, "eval/problems.json"));
   const data = (await file.json()) as { problems: Array<{ id: string; type: string; answer: unknown }> };
   const selfCheck = data.problems.map((p) => {

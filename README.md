@@ -26,5 +26,7 @@ actually helps. The grading module normalizes LaTeX and verifies answers with ma
 
 ## Model runtime
 Gemma via Ollama at `http://localhost:11434`. Model tags are env-configurable
-(`gemma4:e4b` is what these were developed against; swap freely). Embeddings use
-`nomic-embed-text`. License: MIT (code only) — see [`math-sync/LICENSE`](math-sync/LICENSE).
+(`gemma4:e2b` is the demo default — it matched `e4b` on the eval set and is
+~1.6–2.3x faster on CPU, so we standardized on it; swap with `MATH_SYNC_MODEL`).
+Embeddings use `nomic-embed-text`. License: MIT (code only) — see
+[`math-sync/LICENSE`](math-sync/LICENSE).

@@ -58,7 +58,7 @@ export async function* streamChat(body: ChatBody): AsyncGenerator<OllamaChunk> {
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: MODEL, keep_alive: "10m", ...body, stream: true }),
+    body: JSON.stringify({ model: MODEL, keep_alive: "30m", ...body, stream: true }),
   });
   if (!res.ok || !res.body) throw new Error(`Ollama ${res.status}: ${await res.text().catch(() => "")}`);
 

@@ -65,7 +65,8 @@ averages ~15 s/problem raw and ~24 s with tools; `gemma4:e4b` averages ~23 s raw
 
 - **Model:** `gemma4:e2b` (default) / `gemma4:e4b`, run by **Ollama** on the demo laptop.
 - **Beyond an API call:** a native function-calling loop (`lookup_course`,
-  `check_answer`, `plot`) — Gemma orchestrates retrieval, verification, and graphing.
+  `check_answer`, `plot`, `calculate`) — Gemma orchestrates retrieval,
+  verification, arithmetic, and graphing.
 - **Airplane-mode proof:** disable Wi-Fi, then ask a question — it still answers. All
   front-end assets (KaTeX, function-plot) are vendored locally; zero CDN calls.
 
@@ -102,7 +103,7 @@ averages ~15 s/problem raw and ~24 s with tools; `gemma4:e4b` averages ~23 s raw
 server.ts            Bun server: static UI, SSE chat, course + eval-results APIs, Edge --app
 src/ollama.ts        native Ollama /api/chat streaming client
 src/agent.ts         streaming tool-calling loop (capped, empty-answer guard)
-src/tools.ts         lookup_course · check_answer · plot  (schemas + validated dispatch)
+src/tools.ts         lookup_course · check_answer · plot · calculate  (schemas + validated dispatch)
 src/checker.ts       deterministic verifier (random-point equality — the Evidence engine)
 src/course.ts        course-pack loader (COURSE_DIR override)
 public/              UI (index.html, app.js, style.css) + vendor/ (KaTeX, function-plot)
