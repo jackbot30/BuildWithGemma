@@ -10,6 +10,408 @@
       "passRate": "15/15",
       "avgSeconds": null,
       "note": "Measured before kickoff on the original 15-problem screening set, 36–105 s/problem, CPU-only. Quoted from the team plan — not re-run in this repo."
+    },
+    {
+      "name": "Raw Gemma (gemma4:e2b)",
+      "model": "gemma4:e2b",
+      "mode": "raw",
+      "startedAt": "2026-07-18T07:40:29.058Z",
+      "done": true,
+      "problems": [
+        {
+          "id": "lin-1",
+          "question": "Solve 5x - 3 = 12 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 8.68
+        },
+        {
+          "id": "lin-2",
+          "question": "Solve 4(x + 2) = 20 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 9.62
+        },
+        {
+          "id": "lin-3",
+          "question": "Find the slope of the line through (2, 5) and (6, 13).",
+          "expected": "2",
+          "got": "2",
+          "pass": true,
+          "seconds": 12.17
+        },
+        {
+          "id": "lin-4",
+          "question": "Solve 3x + 7 = 22 for x.",
+          "expected": "5",
+          "got": "5",
+          "pass": true,
+          "seconds": 10.09
+        },
+        {
+          "id": "lin-5",
+          "question": "Solve 2(x - 4) = 10 for x.",
+          "expected": "9",
+          "got": "9",
+          "pass": true,
+          "seconds": 10.67
+        },
+        {
+          "id": "quad-1",
+          "question": "Solve x^2 - 5x + 6 = 0.",
+          "expected": [
+            "2",
+            "3"
+          ],
+          "got": "2, 3",
+          "pass": true,
+          "seconds": 23.63
+        },
+        {
+          "id": "quad-2",
+          "question": "Solve x^2 - 7x + 12 = 0.",
+          "expected": [
+            "3",
+            "4"
+          ],
+          "got": "3, 4",
+          "pass": true,
+          "seconds": 23.99
+        },
+        {
+          "id": "quad-3",
+          "question": "Find the vertex of y = x^2 - 6x + 5.",
+          "expected": [
+            "3",
+            "-4"
+          ],
+          "got": "3, -4",
+          "pass": true,
+          "seconds": 17.35
+        },
+        {
+          "id": "quad-4",
+          "question": "Find the vertex of y = x^2 + 4x + 1.",
+          "expected": [
+            "-2",
+            "-3"
+          ],
+          "got": "-2, -3",
+          "pass": true,
+          "seconds": 17.67
+        },
+        {
+          "id": "quad-5",
+          "question": "Solve 3x^2 - 12 = 0.",
+          "expected": [
+            "2",
+            "-2"
+          ],
+          "got": "2, -2",
+          "pass": true,
+          "seconds": 16.39
+        }
+      ],
+      "passRate": "10/10",
+      "avgSeconds": 15.03
+    },
+    {
+      "name": "Gemma + tools (gemma4:e2b)",
+      "model": "gemma4:e2b",
+      "mode": "tools",
+      "startedAt": "2026-07-18T07:42:59.394Z",
+      "done": true,
+      "problems": [
+        {
+          "id": "lin-1",
+          "question": "Solve 5x - 3 = 12 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 22.56
+        },
+        {
+          "id": "lin-2",
+          "question": "Solve 4(x + 2) = 20 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 19.55
+        },
+        {
+          "id": "lin-3",
+          "question": "Find the slope of the line through (2, 5) and (6, 13).",
+          "expected": "2",
+          "got": "2",
+          "pass": true,
+          "seconds": 21.46
+        },
+        {
+          "id": "lin-4",
+          "question": "Solve 3x + 7 = 22 for x.",
+          "expected": "5",
+          "got": "5",
+          "pass": true,
+          "seconds": 20.53
+        },
+        {
+          "id": "lin-5",
+          "question": "Solve 2(x - 4) = 10 for x.",
+          "expected": "9",
+          "got": "9",
+          "pass": true,
+          "seconds": 18.67
+        },
+        {
+          "id": "quad-1",
+          "question": "Solve x^2 - 5x + 6 = 0.",
+          "expected": [
+            "2",
+            "3"
+          ],
+          "got": "2, 3",
+          "pass": true,
+          "seconds": 22.02
+        },
+        {
+          "id": "quad-2",
+          "question": "Solve x^2 - 7x + 12 = 0.",
+          "expected": [
+            "3",
+            "4"
+          ],
+          "got": "3, 4",
+          "pass": true,
+          "seconds": 29.46
+        },
+        {
+          "id": "quad-3",
+          "question": "Find the vertex of y = x^2 - 6x + 5.",
+          "expected": [
+            "3",
+            "-4"
+          ],
+          "got": "3, -4",
+          "pass": true,
+          "seconds": 34.96
+        },
+        {
+          "id": "quad-4",
+          "question": "Find the vertex of y = x^2 + 4x + 1.",
+          "expected": [
+            "-2",
+            "-3"
+          ],
+          "got": "-2, -3",
+          "pass": true,
+          "seconds": 25.6
+        },
+        {
+          "id": "quad-5",
+          "question": "Solve 3x^2 - 12 = 0.",
+          "expected": [
+            "2",
+            "-2"
+          ],
+          "got": "2, -2",
+          "pass": true,
+          "seconds": 28.22
+        }
+      ],
+      "passRate": "10/10",
+      "avgSeconds": 24.3
+    },
+    {
+      "name": "Raw Gemma (gemma4:e4b)",
+      "model": "gemma4:e4b",
+      "mode": "raw",
+      "startedAt": "2026-07-18T07:47:25.116Z",
+      "done": true,
+      "problems": [
+        {
+          "id": "lin-1",
+          "question": "Solve 5x - 3 = 12 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 27
+        },
+        {
+          "id": "lin-2",
+          "question": "Solve 4(x + 2) = 20 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 20.61
+        },
+        {
+          "id": "lin-3",
+          "question": "Find the slope of the line through (2, 5) and (6, 13).",
+          "expected": "2",
+          "got": "2",
+          "pass": true,
+          "seconds": 17.82
+        },
+        {
+          "id": "lin-4",
+          "question": "Solve 3x + 7 = 22 for x.",
+          "expected": "5",
+          "got": "5",
+          "pass": true,
+          "seconds": 13.78
+        },
+        {
+          "id": "lin-5",
+          "question": "Solve 2(x - 4) = 10 for x.",
+          "expected": "9",
+          "got": "9",
+          "pass": true,
+          "seconds": 18.28
+        },
+        {
+          "id": "quad-1",
+          "question": "Solve x^2 - 5x + 6 = 0.",
+          "expected": [
+            "2",
+            "3"
+          ],
+          "got": "2, 3",
+          "pass": true,
+          "seconds": 28.26
+        },
+        {
+          "id": "quad-2",
+          "question": "Solve x^2 - 7x + 12 = 0.",
+          "expected": [
+            "3",
+            "4"
+          ],
+          "got": "3, 4",
+          "pass": true,
+          "seconds": 25
+        },
+        {
+          "id": "quad-3",
+          "question": "Find the vertex of y = x^2 - 6x + 5.",
+          "expected": [
+            "3",
+            "-4"
+          ],
+          "got": "3, -4",
+          "pass": true,
+          "seconds": 30.26
+        },
+        {
+          "id": "quad-4",
+          "question": "Find the vertex of y = x^2 + 4x + 1.",
+          "expected": [
+            "-2",
+            "-3"
+          ],
+          "got": "-2, -3",
+          "pass": true,
+          "seconds": 34.32
+        },
+        {
+          "id": "quad-5",
+          "question": "Solve 3x^2 - 12 = 0.",
+          "expected": [
+            "2",
+            "-2"
+          ],
+          "got": "2, -2",
+          "pass": true,
+          "seconds": 17.84
+        }
+      ],
+      "passRate": "10/10",
+      "avgSeconds": 23.32
+    },
+    {
+      "name": "Gemma + tools (gemma4:e4b)",
+      "model": "gemma4:e4b",
+      "mode": "tools",
+      "startedAt": "2026-07-18T07:51:18.388Z",
+      "done": false,
+      "problems": [
+        {
+          "id": "lin-1",
+          "question": "Solve 5x - 3 = 12 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 37.12
+        },
+        {
+          "id": "lin-2",
+          "question": "Solve 4(x + 2) = 20 for x.",
+          "expected": "3",
+          "got": "3",
+          "pass": true,
+          "seconds": 57.78
+        },
+        {
+          "id": "lin-3",
+          "question": "Find the slope of the line through (2, 5) and (6, 13).",
+          "expected": "2",
+          "got": "2",
+          "pass": true,
+          "seconds": 44.73
+        },
+        {
+          "id": "lin-4",
+          "question": "Solve 3x + 7 = 22 for x.",
+          "expected": "5",
+          "got": "5",
+          "pass": true,
+          "seconds": 35.44
+        },
+        {
+          "id": "lin-5",
+          "question": "Solve 2(x - 4) = 10 for x.",
+          "expected": "9",
+          "got": "9",
+          "pass": true,
+          "seconds": 51.95
+        },
+        {
+          "id": "quad-1",
+          "question": "Solve x^2 - 5x + 6 = 0.",
+          "expected": [
+            "2",
+            "3"
+          ],
+          "got": "2, 3",
+          "pass": true,
+          "seconds": 59.55
+        },
+        {
+          "id": "quad-2",
+          "question": "Solve x^2 - 7x + 12 = 0.",
+          "expected": [
+            "3",
+            "4"
+          ],
+          "got": "3, 4",
+          "pass": true,
+          "seconds": 66.87
+        },
+        {
+          "id": "quad-3",
+          "question": "Find the vertex of y = x^2 - 6x + 5.",
+          "expected": [
+            "3",
+            "-4"
+          ],
+          "got": "3, -4",
+          "pass": true,
+          "seconds": 67.65
+        }
+      ],
+      "passRate": "8/8",
+      "avgSeconds": 52.64
     }
   ]
 }
