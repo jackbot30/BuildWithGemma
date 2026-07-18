@@ -101,10 +101,18 @@ async function handleChat(req: Request): Promise<Response> {
   // so the model answers in the context of the open lesson.
   const lessonId = typeof body.lessonId === "string" ? body.lessonId : "";
   const openLesson = lessonId ? course.lessons.find((l) => l.id === lessonId) : undefined;
-  const turn = openLesson
+  let turn = openLesson
     ? `The student has this lesson open:\n\n${openLesson.content}\n\n---\n\nStudent question: ${message}`
     : message;
   // --- end course-nav -------------------------------------------------------
+  // feat/flashcards + feat/quiz: small-model tool-selection nudge. e2b reliably
+  // grounds via lookup_course but can then answer in prose instead of calling the
+  // composer tool — a per-turn instruction right next to the request fixes it.
+  if (/flash\s*cards?|anki/i.test(message)) {
+    turn += "\n\n(Instruction: call the create_flashcards tool with 5-15 front/back cards drawn from the lesson. Do not list the cards in your reply.)";
+  } else if (/\bquiz(zes)?\b|practice problems/i.test(message)) {
+    turn += "\n\n(Instruction: call the create_quiz tool with 3-5 problems from the lesson. Do not state the answers in your reply.)";
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {

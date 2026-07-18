@@ -120,7 +120,7 @@ async function ask(message) {
       bubble.textContent = answer;
       return;
     }
-    const keep = [...bubble.querySelectorAll(".verdict, .trace-drawer, .quiz-card")]; // feat/quiz: keep quiz cards
+    const keep = [...bubble.querySelectorAll(".verdict, .trace-drawer, .quiz-card, .flashcard-deck")]; // survive live re-renders
     bubble.innerHTML = md(answer);
     bubble.classList.add("md");
     for (const el of keep) bubble.appendChild(el);
@@ -243,6 +243,9 @@ async function ask(message) {
         break;
       case "quiz": // feat/quiz — all rendering lives in quiz.js
         window.msQuiz?.render(bubble, ev.quiz);
+        break;
+      case "flashcards": // feat/flashcards — all rendering lives in flashcards.js
+        window.msFlashcards?.render(bubble, ev.deck);
         break;
       case "done":
         if (ev.text && !answer) answer = ev.text;

@@ -274,3 +274,25 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .quiz-result.bad { color: var(--bad); }
 .quiz-foot { margin: 12px 0 0; font-size: 11.5px; font-style: italic; }
 /* --- end feat/quiz --- */
+
+/* --- feat/flashcards (TEMPORARY styling, restyle pending). Delete block + flashcards.js + script tag to remove. --- */
+.flashcard-deck { margin-top: 12px; max-width: 460px; }
+.fc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.fc-card {
+  display: block; width: 100%; min-height: 130px; padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.35); border-radius: var(--radius);
+  background: var(--bubble-ai); color: var(--text); font: inherit; font-size: 16px;
+  cursor: pointer; text-align: center;
+}
+.fc-card.back { border-color: var(--accent); background: rgba(56, 189, 248, 0.08); }
+.fc-card:hover { border-color: var(--accent); }
+.fc-face { min-height: 70px; display: flex; align-items: center; justify-content: center; }
+.fc-hint { font-size: 11.5px; margin-top: 8px; }
+.fc-nav { display: flex; gap: 8px; margin-top: 10px; }
+.fc-nav button {
+  padding: 7px 14px; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 8px;
+  background: transparent; color: var(--text); font: inherit; cursor: pointer;
+}
+.fc-nav button:disabled { opacity: 0.4; cursor: default; }
+.fc-nav .fc-export { margin-left: auto; border-color: var(--accent); color: var(--accent); }
+.fc-foot { font-size: 11.5px; margin: 8px 0 0; }

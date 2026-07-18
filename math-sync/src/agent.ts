@@ -11,6 +11,7 @@ import { streamChat, MODEL, type OllamaMessage, type ToolCall } from "./ollama.t
 import type { CoursePack } from "./course.ts";
 import { toolSchemas, dispatchTool, type ToolContext, type PlotSpec } from "./tools.ts";
 import type { QuizClientView } from "./quiz.ts"; // feat/quiz
+import type { FlashcardDeck } from "./flashcards.ts"; // feat/flashcards
 import { TraceBuilder, recordTrace, type TurnTrace, type TraceOutcome } from "./trace.ts";
 
 export type AgentEvent =
@@ -18,6 +19,7 @@ export type AgentEvent =
   | { type: "tool"; name: string; phase: "call" | "result"; detail: string; durationMs?: number }
   | { type: "plot"; spec: PlotSpec }
   | { type: "quiz"; quiz: QuizClientView } // feat/quiz — no expected answers, ever
+  | { type: "flashcards"; deck: FlashcardDeck } // feat/flashcards
   | { type: "done"; text: string }
   | { type: "trace"; trace: TurnTrace }
   | { type: "error"; message: string; detail?: string };
@@ -39,7 +41,7 @@ function systemPrompt(course: CoursePack): string {
     "4. Call calculate for any arithmetic — never do mental math.",
     "5. Call check_answer only when you have a course-sourced answer key value (from lookup_course or the quiz/eval key). Never call it with your own computed answer as expected — that is circular.",
     "6. Call plot when a graph helps understanding (parabolas, lines, etc.).",
-    "7. When creating a quiz, never state the answers in your text — only call create_quiz.",
+    "7. When asked for a quiz call create_quiz; when asked for flashcards call create_flashcards (front/back drawn from the lesson). Never state quiz answers in your text.",
     "8. Be concise. Plain text. LaTeX $...$ ok for math.",
   ].join("\n");
 }
@@ -107,7 +109,7 @@ export async function runAgent(
    */
   displayInput?: string,
 ): Promise<void> {
-  const ctx: ToolContext = { course, plots: [], quizzes: [] }; // feat/quiz: quizzes
+  const ctx: ToolContext = { course, plots: [], quizzes: [], flashcards: [] }; // feat/quiz + feat/flashcards
   const system = systemPrompt(course);
   const messages: OllamaMessage[] = [
     { role: "system", content: system },
@@ -156,6 +158,8 @@ export async function runAgent(
       for (const spec of ctx.plots.splice(0)) emit({ type: "plot", spec });
       // feat/quiz: emit any quizzes this round produced (questions only — no answer key).
       for (const quiz of (ctx.quizzes ?? []).splice(0)) emit({ type: "quiz", quiz });
+      // feat/flashcards: emit any decks this round produced.
+      for (const deck of (ctx.flashcards ?? []).splice(0)) emit({ type: "flashcards", deck });
     }
     // Hit the round cap — fall back to the best answer text we streamed, since
     // small Gemma often emits its final prose alongside one last tool call.

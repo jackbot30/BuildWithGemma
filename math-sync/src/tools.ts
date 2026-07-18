@@ -11,6 +11,7 @@ import { checkAnswer, checkSet } from "./checker.ts";
 import { calculateExpression } from "./calc.ts";
 import { validateProblems, createQuiz, toClientView, inferType, type QuizClientView } from "./quiz.ts"; // feat/quiz
 import { verifySolution } from "./verify.ts";
+import { validateCards, type FlashcardDeck } from "./flashcards.ts"; // feat/flashcards
 
 /** Split a free-form answer ("x=2 or x=3", "2, -2") into bare expressions. */
 function splitAnswers(s: string): string[] {
@@ -32,6 +33,8 @@ export interface ToolContext {
   /** feat/quiz: quizzes created this round — agent loop emits them to the client (no answers).
    * Optional so contexts that never render (eval CLI) don't need it. */
   quizzes?: QuizClientView[];
+  /** feat/flashcards: decks created this round — emitted whole (nothing to grade). */
+  flashcards?: FlashcardDeck[];
 }
 
 interface Tool {
@@ -267,6 +270,54 @@ const TOOLS: Record<string, Tool> = {
         ? ` Dropped ${rejected.length} invalid problem(s): ${rejectedNote}.`
         : "";
       return `Created quiz #${quiz.id} "${title}" with ${accepted.length} problem(s) — now on the student's screen.${dropped} Tell the student to answer in the quiz card; their answers are checked automatically.`;
+    },
+  },
+
+  // feat/flashcards: Gemma composes front/back cards; client renders a flip deck
+  // + Anki TSV export. Stateless — the whole deck travels in the event.
+  create_flashcards: {
+    schema: {
+      type: "function",
+      function: {
+        name: "create_flashcards",
+        description:
+          "Create study flashcards for the student from the course material. Provide 5-15 cards; front = a short prompt/term/question, back = the concise answer/definition/formula. The deck renders on the student's screen with flip navigation and can be exported to Anki.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Deck title, e.g. 'Lesson 1.1 — Coordinate Plane'" },
+            cards: {
+              type: "array",
+              description: "The flashcards",
+              items: {
+                type: "object",
+                properties: {
+                  front: { type: "string", description: "Prompt side — term, question, or formula name" },
+                  back: { type: "string", description: "Answer side — concise definition, value, or formula" },
+                },
+                required: ["front", "back"],
+              },
+            },
+          },
+          required: ["title", "cards"],
+        },
+      },
+    },
+    run: (args, ctx) => {
+      const title = asString(args.title, "title").trim() || "Flashcards";
+      if (!Array.isArray(args.cards)) throw new Error("cards must be an array");
+      const { accepted, rejected } = validateCards(
+        (args.cards as unknown[]).map((raw) => {
+          const c = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+          return { front: c.front, back: c.back };
+        }),
+      );
+      if (accepted.length === 0) {
+        return `Error: no valid cards — every card needs a non-empty front and back. Fix and call create_flashcards again.`;
+      }
+      (ctx.flashcards ??= []).push({ title, cards: accepted });
+      const dropped = rejected.length ? ` Dropped ${rejected.length} invalid card(s).` : "";
+      return `Created flashcard deck "${title}" with ${accepted.length} card(s) — now on the student's screen with flip navigation and an Anki export button.${dropped}`;
     },
   },
 };
