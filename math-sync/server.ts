@@ -113,12 +113,19 @@ async function handleChat(req: Request): Promise<Response> {
   } else if (/\bquiz(zes)?\b|practice problems/i.test(message)) {
     turn += "\n\n(Instruction: call the create_quiz tool with 3-5 problems from the lesson. Do not state the answers in your reply.)";
   }
+  // The nudge alone isn't always enough on e2b — enforce the composer tool: the
+  // agent loop grants one extra round with a firm instruction if it wasn't called.
+  const requiredTool = /flash\s*cards?|anki/i.test(message)
+    ? "create_flashcards"
+    : /\bquiz(zes)?\b|practice problems/i.test(message)
+      ? "create_quiz"
+      : undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       // Trace records the student's raw message, not the lesson-prefixed blob
       // (`turn`) that the model receives.
-      await runAgent(history, turn, course, (e) => sse(controller, e), message);
+      await runAgent(history, turn, course, (e) => sse(controller, e), message, requiredTool);
       // close() throws if the client already disconnected — ignore it.
       try {
         controller.close();

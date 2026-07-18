@@ -108,8 +108,17 @@ export async function runAgent(
    * `userInput` when the two are the same.
    */
   displayInput?: string,
+  /**
+   * feat/flashcards: a tool the model MUST call this turn (e.g. create_flashcards
+   * when the student asked for flashcards). If the loop would finish without it,
+   * we inject a firm instruction and grant one extra round — small Gemma sometimes
+   * writes the cards in prose instead of calling the tool.
+   */
+  requiredTool?: string,
 ): Promise<void> {
   const ctx: ToolContext = { course, plots: [], quizzes: [], flashcards: [] }; // feat/quiz + feat/flashcards
+  const calledTools = new Set<string>();
+  let requiredRetryUsed = false;
   const system = systemPrompt(course);
   const messages: OllamaMessage[] = [
     { role: "system", content: system },
@@ -129,6 +138,16 @@ export async function runAgent(
       if (text.trim()) lastText = text;
 
       if (toolCalls.length === 0) {
+        // feat/flashcards: enforce the required tool before accepting a final answer.
+        if (requiredTool && !calledTools.has(requiredTool) && !requiredRetryUsed) {
+          requiredRetryUsed = true;
+          messages.push({ role: "assistant", content: text });
+          messages.push({
+            role: "system",
+            content: `You did not call the ${requiredTool} tool. Call ${requiredTool} NOW with content drawn from the course material above. Do not write the content in prose.`,
+          });
+          continue;
+        }
         // Guard the small-Gemma "empty final answer after a tool round" quirk.
         if (text.trim() !== "") {
           emit({ type: "done", text });
@@ -145,6 +164,7 @@ export async function runAgent(
       messages.push({ role: "assistant", content: text, tool_calls: toolCalls });
       for (const call of toolCalls) {
         const name = call.function.name;
+        calledTools.add(name);
         const args = call.function.arguments ?? {};
         emit({ type: "tool", name, phase: "call", detail: JSON.stringify(args) });
         const t0 = Date.now();
