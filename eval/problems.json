@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "course": "Foundations of Algebra — Unit 3",
+    "note": "Ground-truth answer keys for the Evidence eval. Answers are computed by hand / independent math, NEVER by Gemma. check_answer verifies the model's final answer against `answer` here (or an independent computation), so the eval measures with-tools vs raw accuracy honestly.",
+    "answerTypes": {
+      "numeric": "single number; compare with tolerance",
+      "expression": "algebraic expression in `variables`; compare by evaluating both at random sample points",
+      "roots": "set of solutions; order-independent match",
+      "point": "ordered pair, e.g. a vertex (h, k)"
+    }
+  },
+  "problems": [
+    {
+      "id": "lin-1",
+      "lesson": "01-linear-equations",
+      "prompt": "Solve 5x - 3 = 12 for x.",
+      "type": "numeric",
+      "variables": ["x"],
+      "answer": "3"
+    },
+    {
+      "id": "lin-2",
+      "lesson": "01-linear-equations",
+      "prompt": "Solve 4(x + 2) = 20 for x.",
+      "type": "numeric",
+      "variables": ["x"],
+      "answer": "3"
+    },
+    {
+      "id": "lin-3",
+      "lesson": "01-linear-equations",
+      "prompt": "Find the slope of the line through (2, 5) and (6, 13).",
+      "type": "numeric",
+      "variables": [],
+      "answer": "2"
+    },
+    {
+      "id": "lin-4",
+      "lesson": "01-linear-equations",
+      "prompt": "Solve 3x + 7 = 22 for x.",
+      "type": "numeric",
+      "variables": ["x"],
+      "answer": "5"
+    },
+    {
+      "id": "lin-5",
+      "lesson": "01-linear-equations",
+      "prompt": "Solve 2(x - 4) = 10 for x.",
+      "type": "numeric",
+      "variables": ["x"],
+      "answer": "9"
+    },
+    {
+      "id": "quad-1",
+      "lesson": "02-quadratics",
+      "prompt": "Solve x^2 - 5x + 6 = 0.",
+      "type": "roots",
+      "variables": ["x"],
+      "answer": ["2", "3"]
+    },
+    {
+      "id": "quad-2",
+      "lesson": "02-quadratics",
+      "prompt": "Solve x^2 - 7x + 12 = 0.",
+      "type": "roots",
+      "variables": ["x"],
+      "answer": ["3", "4"]
+    },
+    {
+      "id": "quad-3",
+      "lesson": "02-quadratics",
+      "prompt": "Find the vertex of y = x^2 - 6x + 5.",
+      "type": "point",
+      "variables": [],
+      "answer": ["3", "-4"]
+    },
+    {
+      "id": "quad-4",
+      "lesson": "02-quadratics",
+      "prompt": "Find the vertex of y = x^2 + 4x + 1.",
+      "type": "point",
+      "variables": [],
+      "answer": ["-2", "-3"]
+    },
+    {
+      "id": "quad-5",
+      "lesson": "02-quadratics",
+      "prompt": "Solve 3x^2 - 12 = 0.",
+      "type": "roots",
+      "variables": ["x"],
+      "answer": ["2", "-2"]
+    }
+  ]
+}

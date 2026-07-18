@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.bun/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs / caches
+*.log
+.cache/
+coverage/
+
+# --- Copyrighted course content: DO NOT COMMIT ---
+# The real course (from Agilix Buzz) stays local. Only the self-written
+# sample-course/ ships in the repo. Load the real one at runtime with:
+#   COURSE_DIR=./real-course bun run app
+/real-course/
+/course-content/
+*.coursepack
+
+# Large / licensed model weights (Gemma is pulled via Ollama, not committed)
+*.gguf
+/models/

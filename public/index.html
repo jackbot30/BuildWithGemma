@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="slate">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Math Sync</title>
+    <!-- ALL local — zero CDN so airplane mode works. Run `bun run vendor` first. -->
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <link rel="stylesheet" href="/style.css" />
+    <script defer src="/vendor/katex/katex.min.js"></script>
+    <script defer src="/vendor/katex/contrib/auto-render.min.js"></script>
+    <script defer src="/vendor/function-plot/function-plot.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <strong>Math Sync</strong>
+        <span id="course-label" class="muted">loading course…</span>
+      </div>
+      <div class="controls">
+        <span id="net-badge" class="badge">checking network…</span>
+        <select id="theme" aria-label="Theme">
+          <option value="slate">Slate</option>
+          <option value="mint">Mint</option>
+          <option value="paper">Paper</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    </header>
+
+    <main id="chat" aria-live="polite">
+      <div class="msg assistant">
+        <div class="bubble">
+          Load your course once — then I teach, graph, and <em>check my own work</em>,
+          fully offline. Ask me a question from your course.
+        </div>
+      </div>
+    </main>
+
+    <form id="composer">
+      <input id="input" type="text" autocomplete="off" placeholder="e.g. Solve x^2 - 5x + 6 = 0" />
+      <button id="send" type="submit">Ask</button>
+    </form>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
