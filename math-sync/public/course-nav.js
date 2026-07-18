@@ -2,7 +2,11 @@
 // All feature JS lives in this one file; the only
 // hooks elsewhere are one script tag in index.html, a marked CSS block in
 // style.css, and app.js reading window.courseNav.takeLessonContext() on send.
-// Everything is local — no CDN/external URLs (airplane-mode requirement).
+// Everything is local — no CDN/external URLs (airplane-mode requirement), except
+// course diagrams hosted on the network, which render only in online mode (see
+// syncNetworkImages) and stay as captions offline.
+
+import { transformImages } from "./md-images.js";
 
 /**
  * @typedef {{ id: string, title: string }} OutlineLesson
@@ -45,16 +49,56 @@ function escapeHtml(s) {
 }
 
 function inlineMd(s) {
-  return s
-    // Localized lesson images (flat names under <courseDir>/assets, served by the app).
-    .replace(/!\[([^\]]*)\]\(assets\/([\w.-]+)\)/g, '<img src="/course-asset/$2" alt="$1" loading="lazy" />')
-    // Any image still pointing at the network degrades to its alt text — offline-safe.
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+  // Images (local assets, offline-safe network placeholders, or alt-text) are
+  // resolved by the shared, unit-tested transform; the rest is inline styling.
+  return transformImages(s)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1"); // links → plain text (no navigation)
 }
+
+/**
+ * Hydrate network-image placeholders left by transformImages. Inserts the real
+ * <img> only when the browser is online; offline (or if the image fails to load)
+ * it keeps just the <figcaption>, so no external request is ever made in airplane
+ * mode. Re-run on `online`/`offline` events to flip live.
+ * @param {ParentNode} root
+ */
+function syncNetworkImages(root) {
+  const online = navigator.onLine;
+  for (const el of root.querySelectorAll("figure.net-img")) {
+    const fig = /** @type {HTMLElement} */ (el);
+    const url = fig.dataset.netSrc;
+    const existing = fig.querySelector("img");
+    if (online && url) {
+      if (!existing) {
+        const img = document.createElement("img");
+        img.alt = fig.querySelector("figcaption")?.textContent ?? "";
+        img.loading = "lazy";
+        // On load failure (online but image unreachable) fall back to caption.
+        img.addEventListener(
+          "error",
+          () => {
+            img.remove();
+            fig.classList.add("net-img--offline");
+          },
+          { once: true },
+        );
+        img.src = url;
+        fig.insertBefore(img, fig.firstChild);
+      }
+      fig.classList.remove("net-img--offline");
+    } else {
+      existing?.remove();
+      fig.classList.add("net-img--offline");
+    }
+  }
+}
+
+// Flip images live when connectivity changes, across lessons and chat answers.
+window.addEventListener("online", () => syncNetworkImages(document.body));
+window.addEventListener("offline", () => syncNetworkImages(document.body));
 
 /** Minimal markdown → HTML: fences, headings, lists, blockquotes, paragraphs. */
 function mdToHtml(md) {
@@ -157,6 +201,7 @@ async function openLesson(id) {
   if (lessonTitle) lessonTitle.textContent = lesson.title;
   if (lessonContent) {
     lessonContent.innerHTML = mdToHtml(lesson.content);
+    syncNetworkImages(lessonContent); // load diagrams if online; captions if not
     if (window.renderMathInElement) {
       window.renderMathInElement(lessonContent, {
         delimiters: [

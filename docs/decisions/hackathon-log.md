@@ -250,3 +250,34 @@ time runs out. All four are client-side only — no server surface, no external 
 4. **Airplane-moment banner.** The window `offline` event shows a brief (~4s,
    CSS-animated) "✈ Offline — everything still works." banner atop the chat;
    reconnecting stays quiet on purpose. The existing net-badge behavior is untouched.
+
+## 2026-07-18 · Orbit theme (variant C): grafted as a 5th CSS-variable theme, zero behavior change
+
+The "Orbit look on math-sync" brief was delivered as a new entry in the existing
+theme picker (slate/mint/paper/dark → +orbit), not a fork or a re-skin of the app.
+Rationale: math-sync's UI is already a CSS-variable theme system, so the whole
+standalone UI/ identity — "Plum Dusk" palette (amethyst #7d5ba6, marigold #f2b950,
+plum ink, snow text) and the star/space treatment — fits as one `[data-theme="orbit"]`
+block plus a structural section scoped entirely under that selector. Nothing outside
+that selector changes, so every existing feature keeps its exact behavior and the
+other four themes are byte-for-byte unaffected.
+
+Two deliberate calls:
+- **Star treatment = CSS starfield first, video second.** The space backdrop is an
+  animated pure-CSS starfield (layered radial-gradient "stars" drifting up + a nebula
+  wash), always on and airplane-safe with no asset dependency and a
+  prefers-reduced-motion guard. The standalone UI/'s stars.mp4 is copied locally into
+  public/assets/ and layered on top via one theme-guarded helper in app.js
+  (syncOrbitStars) that injects a fixed <video> ONLY while Orbit is active and
+  pauses/removes it otherwise. If autoplay is blocked the CSS starfield still carries
+  the look. This is the single JS touch — behavior-adjacent (a decorative backdrop),
+  not a feature change — and it is a no-op for every other theme.
+- **Square, not rounded.** Orbit overrides --radius to 4px to match UI/'s square
+  identity; panels go translucent-plum with blur so the starfield reads through.
+
+Tradeoff owned: this ships the *look* with zero feature risk and one UI, but it does
+NOT adopt UI/'s structural choreography (intro slide-in, focus-mode docks, unit-tile
+mission-control layout) — those live in UI/'s own markup/JS and grafting them would
+mean touching feature JS, which this variant explicitly avoids. Gate green:
+bun test 179 pass / 0 fail (clean-worktree baseline was 179, not the 163 quoted in
+the brief — that count predates later features), bunx tsc --noEmit clean.

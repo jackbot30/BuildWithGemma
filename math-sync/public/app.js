@@ -40,13 +40,79 @@ function showOfflineBanner() {
 window.addEventListener("offline", showOfflineBanner);
 
 // --- Theme picker (persisted). ---
-const savedTheme = localStorage.getItem("theme") ?? "slate";
+const savedTheme = localStorage.getItem("theme") ?? "orbit";
 document.documentElement.dataset.theme = savedTheme;
 themeSel.value = savedTheme;
 themeSel.addEventListener("change", () => {
   document.documentElement.dataset.theme = themeSel.value;
   localStorage.setItem("theme", themeSel.value);
+  syncOrbitStars();
 });
+
+// --- Orbit theme: optional star-video backdrop (the one behavior-adjacent add).
+// Lazily injects a fixed, local <video> (assets/stars.mp4) the first time the
+// Orbit theme is active, and only then. Every other theme is untouched: no
+// element is created, and if it already exists it's paused + faded out via the
+// `ready` class. A CSS starfield in style.css is the always-on fallback, so the
+// space look survives even if the video can't play (autoplay blocked, etc.). ---
+/** @type {HTMLVideoElement | null} */
+let orbitStars = null;
+function syncOrbitStars() {
+  const isOrbit = document.documentElement.dataset.theme === "orbit";
+  if (!isOrbit) {
+    if (orbitStars) {
+      orbitStars.classList.remove("ready");
+      orbitStars.pause();
+    }
+    return;
+  }
+  if (!orbitStars) {
+    orbitStars = document.createElement("video");
+    orbitStars.id = "orbit-stars";
+    orbitStars.src = "/assets/stars.mp4";
+    orbitStars.muted = true;
+    orbitStars.loop = true;
+    orbitStars.autoplay = true;
+    orbitStars.playsInline = true;
+    orbitStars.setAttribute("aria-hidden", "true");
+    orbitStars.addEventListener("playing", () => orbitStars?.classList.add("ready"), { once: true });
+    document.body.prepend(orbitStars);
+  }
+  orbitStars.classList.add("ready");
+  void orbitStars.play().catch(() => {}); // CSS starfield covers autoplay refusal
+}
+syncOrbitStars();
+
+// --- Orbit blastoff intro: a one-time launch sequence on load — T-minus
+// countdown → ignition → the wordmark blasts up as the overlay lifts, revealing
+// the app. Pure presentation: the overlay sits above everything and is removed at
+// the end; no feature code runs differently. The CSS gradient/wordmark backdrop
+// covers autoplay refusal. Runs only under Orbit and respects reduced motion. ---
+function runOrbitIntro() {
+  const intro = document.getElementById("orbit-intro");
+  if (!intro || document.documentElement.dataset.theme !== "orbit") return;
+  const video = /** @type {HTMLVideoElement | null} */ (
+    document.getElementById("orbit-intro-video")
+  );
+  void video?.play().catch(() => {});
+
+  const end = () => {
+    intro.classList.add("gone");
+    video?.pause();
+  };
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    intro.classList.add("launching"); // quick fade, no warp
+    window.setTimeout(end, 500);
+    return;
+  }
+
+  const dwell = 1400; // let the wordmark settle, then light the engines
+  window.setTimeout(() => intro.classList.add("ignite"), dwell);
+  window.setTimeout(() => intro.classList.add("launching"), dwell + 460);
+  window.setTimeout(end, dwell + 460 + 1150);
+}
+runOrbitIntro();
 
 // --- Course label ---
 fetch("/api/course")

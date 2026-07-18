@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="slate">
+<html lang="en" data-theme="orbit">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,6 +12,23 @@
     <script defer src="/vendor/function-plot/function-plot.js"></script>
   </head>
   <body>
+    <!-- BEGIN orbit-intro: Leander's beginning animation, ported as a one-time
+         overlay. Fullscreen stars.mp4 + wordmark on load, then fades to reveal
+         the app. Shows only under the Orbit theme (CSS-scoped); app.js drives
+         the fade + removal. Delete this block + #orbit-intro CSS + runOrbitIntro()
+         in app.js to remove. No feature code is affected. -->
+    <div id="orbit-intro" aria-hidden="true">
+      <video id="orbit-intro-video" src="/assets/stars.mp4" muted playsinline autoplay preload="auto"></video>
+      <div class="oi-warp"></div>
+      <div class="oi-stage">
+        <div class="orbit-intro-title">
+          <span class="orbit-intro-kicker">College Algebra</span>
+          <strong>ORBIT</strong>
+        </div>
+      </div>
+      <div class="oi-glow"></div>
+    </div>
+    <!-- END orbit-intro -->
     <header>
       <div class="brand">
         <strong>Math Sync</strong>
@@ -31,6 +48,7 @@
           <option value="mint">Mint</option>
           <option value="paper">Paper</option>
           <option value="dark">Dark</option>
+          <option value="orbit">Orbit</option>
         </select>
       </div>
     </header>
