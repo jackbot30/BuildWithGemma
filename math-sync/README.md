@@ -72,8 +72,14 @@ Latency note: on CPU-only hardware the 4B model takes tens of seconds per answer
 - `check_answer` verifies every final answer by evaluating both the model's answer and
   the answer key at random sample points (see `src/checker.ts`) — **ground truth is the
   answer key, never Gemma's own output** (no circularity).
-- `bun run eval` runs the 10-problem set (`eval/problems.json`) **raw vs. +tools** and
-  prints a pass-rate table.
+- `bun run eval` runs the 10-problem set (`eval/problems.json`) **raw vs. +tools**,
+  prints a pass-rate table, and writes each result to `eval/results.json`
+  (incrementally, so a long run is monitorable and survives interruption).
+- The in-app **Evidence tab** (Chat | Evidence switcher) reads `eval/results.json`
+  and shows each run's pass rate, avg seconds/problem, and per-problem ✓/✗ with
+  expected-vs-got — **failures are shown, not hidden** — so a judge can inspect the
+  numbers without leaving the app. The shipped file also carries a clearly-labelled
+  *quoted* pre-kickoff baseline (not re-run in this repo).
 - **Honest limits:** the ✓/✗ covers final *computable* answers only — not proofs,
   word-problem reasoning, or "show your steps." Course conversion is manual today.
 
@@ -91,7 +97,7 @@ Latency note: on CPU-only hardware the 4B model takes tens of seconds per answer
 ## Repo layout
 
 ```
-server.ts            Bun server: static UI, SSE chat, course + eval APIs, Edge --app
+server.ts            Bun server: static UI, SSE chat, course + eval-results APIs, Edge --app
 src/ollama.ts        native Ollama /api/chat streaming client
 src/agent.ts         streaming tool-calling loop (capped, empty-answer guard)
 src/tools.ts         lookup_course · check_answer · plot  (schemas + validated dispatch)
@@ -99,7 +105,7 @@ src/checker.ts       deterministic verifier (random-point equality — the Evide
 src/course.ts        course-pack loader (COURSE_DIR override)
 public/              UI (index.html, app.js, style.css) + vendor/ (KaTeX, function-plot)
 sample-course/       self-written mini course that ships (real course is .gitignore'd)
-eval/                problems.json (answer keys) + run.ts (pass-rate table)
+eval/                problems.json (answer keys) · run.ts (pass table + writes results) · results.ts (results store) · results.json (persisted runs, read by the Evidence tab)
 ```
 
 ## Team & license

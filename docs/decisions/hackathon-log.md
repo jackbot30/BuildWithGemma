@@ -28,3 +28,13 @@ Gemma 4 has no embedding endpoint in Ollama; nomic is small (274 MB), on-device,
 keeps the no-cloud guarantee intact. Gemma remains the core AI (all generation and
 tutoring). Documented explicitly for the On-Device track rules — the track requires
 Gemma inference on-device, which is unaffected.
+
+## 2026-07-18 · Evidence tab reads pre-run results — no run-from-the-UI button
+
+The Evidence tab shows eval runs from `eval/results.json` (written by `bun run eval`)
+but deliberately has **no "run eval now" button**. A full run is minutes of model
+inference on CPU; spawning that from the demo UI is a crash/hang risk mid-demo and
+would tie up the one machine. So the tab is read-only over pre-run results, and
+`bun run eval` writes the file incrementally (monitorable, interruption-safe). If we
+ever want live runs, it should be a separate, cancellable, backgrounded job — not a
+blocking spawn behind a button.
