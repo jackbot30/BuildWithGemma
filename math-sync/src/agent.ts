@@ -26,6 +26,7 @@ function systemPrompt(course: CoursePack): string {
     "- Ground every explanation in the course. Call lookup_course before answering.",
     "- Call check_answer on every final numeric/algebraic answer before stating it.",
     "- Call plot when a graph aids understanding.",
+    "- Call calculate for any arithmetic — never do mental math.",
     "- If asked something outside this course, say it's outside the course — do not guess.",
     "- Be concise. Show key steps, then the final answer.",
   ].join("\n");

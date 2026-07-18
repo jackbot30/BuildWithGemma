@@ -164,6 +164,20 @@ const server = Bun.serve({
       return json({ id: lesson.id, title: lesson.title, content: lesson.content });
     }
     // --- end course-nav ------------------------------------------------------
+    // --- BEGIN calculator feature (feat/calculator) — keep this block self-contained ---
+    if (path === "/api/calculate" && req.method === "POST") {
+      const { calculateExpression } = await import("./src/calc.ts"); // lazy: keeps this feature in one block
+      let body: { expression?: unknown };
+      try {
+        body = (await req.json()) as typeof body;
+      } catch {
+        return json({ error: "invalid JSON" }, 400);
+      }
+      const expression = typeof body.expression === "string" ? body.expression : "";
+      if (!expression.trim()) return json({ error: "expression is required" }, 400);
+      return json({ result: calculateExpression(expression) });
+    }
+    // --- END calculator feature ---
     if (path === "/api/chat" && req.method === "POST") return handleChat(req);
     if (path === "/api/eval/results") return handleEvalResults();
     if (path === "/api/eval") return handleEval();

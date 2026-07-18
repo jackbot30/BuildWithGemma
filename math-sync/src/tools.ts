@@ -8,6 +8,7 @@ import type { ToolSchema } from "./ollama.ts";
 import type { CoursePack } from "./course.ts";
 import { lookupCourse } from "./course.ts";
 import { checkAnswer, checkSet } from "./checker.ts";
+import { calculateExpression } from "./calc.ts";
 
 /** Split a free-form answer ("x=2 or x=3", "2, -2") into bare expressions. */
 function splitAnswers(s: string): string[] {
@@ -89,6 +90,32 @@ const TOOLS: Record<string, Tool> = {
       return equal
         ? "CORRECT — verified against the answer key."
         : "INCORRECT — the proposed answer does not equal the expected answer.";
+    },
+  },
+
+  calculate: {
+    schema: {
+      type: "function",
+      function: {
+        name: "calculate",
+        description:
+          "Evaluate an arithmetic or scientific expression exactly (e.g. '2^10 - 24', 'sqrt(3^2 + 4^2)', 'sin(pi/6)'). Use this instead of doing arithmetic in your head — it never makes calculation mistakes.",
+        parameters: {
+          type: "object",
+          properties: {
+            expression: {
+              type: "string",
+              description: "The expression to evaluate, e.g. '(-5 + sqrt(25 - 24)) / 2'",
+            },
+          },
+          required: ["expression"],
+        },
+      },
+    },
+    run: (args) => {
+      const expression = asString(args.expression, "expression");
+      const result = calculateExpression(expression);
+      return result.startsWith("Error:") ? result : `${expression.trim()} = ${result}`;
     },
   },
 

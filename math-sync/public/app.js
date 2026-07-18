@@ -208,10 +208,12 @@ const tabs = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("
 let evidenceLoaded = false;
 
 function showView(view) {
-  const isChat = view !== "evidence";
+  const isChat = view !== "evidence" && view !== "calculator";
   chat.hidden = !isChat;
   composer.hidden = !isChat;
-  if (evidenceView) evidenceView.hidden = isChat;
+  if (evidenceView) evidenceView.hidden = view !== "evidence";
+  const calculatorView = document.getElementById("calculator"); // feat/calculator
+  if (calculatorView) calculatorView.hidden = view !== "calculator";
   for (const t of tabs) t.setAttribute("aria-selected", String(t.dataset.view === view));
   if (view === "evidence" && !evidenceLoaded) loadEvidence();
 }
