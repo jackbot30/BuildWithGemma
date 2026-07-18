@@ -73,3 +73,31 @@ against the key — rather than an accuracy lift; the differentiator stays "veri
 rather than claims," not "tools rescue wrong answers." (2) An earlier e2b attempt
 the same night scored 1/10–0/10 and was discarded: that was the extraction bug above,
 not the model.
+
+## 2026-07-18 · Calculator UI evaluates server-side, not client-side mathjs
+
+The Calculator tab posts to `POST /api/calculate`, which reuses the same server-side
+mathjs path as the model's `calculate` tool, instead of vendoring mathjs (~1.5 MB)
+into the client. One tested implementation means the tool and the UI can never
+disagree, and it stays offline — the server is local. The route is a lazy import in
+one marked block of server.ts so the feature stays deletable.
+
+## 2026-07-18 · Trace protocol: one end-of-turn trace event, not per-event streaming
+
+The "What Gemma did" drawer is fed by a single `{type:"trace"}` SSE event emitted at
+the end of each turn (rounds, tool calls with args/results/durations, checker
+verdicts, tok/s from Ollama's eval_count/eval_duration), while the pre-existing
+lightweight `tool` events keep providing live activity lines during the wait. Full
+per-event trace streaming would have meant redesigning the client protocol mid-
+hackathon for no demo gain. Traces also append to a gitignored `traces.log` (JSONL);
+`MATH_SYNC_NUM_PREDICT` exists as a test-only knob (unset ⇒ shipped default 1024).
+
+## 2026-07-18 · Overnight parallel build merged in fixed order with a gate per merge
+
+course-nav, calculator, and trace were built by three parallel agents in isolated
+worktrees off the same base, then merged onto main one at a time (nav → calc →
+trace), each merge gated on: zero conflict markers, `bun test`, `tsc --noEmit`, a
+booted server, and endpoint smoke tests — plus one live model turn after the final
+merge (trace event + calculate tool verified end-to-end over SSE). Two cross-branch
+seams were fixed at integration, not in the branches: `showView` now knows all four
+views, and the lesson pane hides the calculator/trace views it couldn't know about.
