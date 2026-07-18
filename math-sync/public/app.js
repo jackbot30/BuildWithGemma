@@ -24,6 +24,21 @@ window.addEventListener("online", refreshNetBadge);
 window.addEventListener("offline", refreshNetBadge);
 refreshNetBadge();
 
+// --- Airplane-moment banner: on going offline, a brief reassuring banner at the
+// top of the chat. Reconnecting stays quiet on purpose (net-badge already flips).
+// Pure addition — the net-badge behavior above is untouched.
+function showOfflineBanner() {
+  document.getElementById("offline-banner")?.remove();
+  const banner = document.createElement("div");
+  banner.id = "offline-banner";
+  banner.className = "offline-banner";
+  banner.setAttribute("role", "status");
+  banner.textContent = "✈ Offline — everything still works.";
+  chat.appendChild(banner);
+  setTimeout(() => banner.remove(), 4000); // matches the CSS animation length
+}
+window.addEventListener("offline", showOfflineBanner);
+
 // --- Theme picker (persisted). ---
 const savedTheme = localStorage.getItem("theme") ?? "slate";
 document.documentElement.dataset.theme = savedTheme;
