@@ -38,3 +38,38 @@ would tie up the one machine. So the tab is read-only over pre-run results, and
 `bun run eval` writes the file incrementally (monitorable, interruption-safe). If we
 ever want live runs, it should be a separate, cancellable, backgrounded job — not a
 blocking spawn behind a button.
+
+## 2026-07-18 · Eval harness fix: extract a forced ANSWER line, actually dispatch tools
+
+The first live eval run (gemma4:e2b, Jul 18 early AM) produced garbage: extraction
+took the raw last line of a markdown/LaTeX reply, so `got` was literally `**`,
+`### Method`, or `$$m = \frac{8}{4}$$` while the model's math was visibly right in
+the prose; tools mode also silently dropped every emitted tool call (no dispatch
+loop) and `num_predict: 512` truncated replies before the final answer. Those two
+runs were deleted from `results.json` — they document a harness bug, not the model.
+Fix, mirroring `gemma-course-tutor`'s proven grading approach: both modes now demand
+a final plain-form `ANSWER: <value>` line; `eval/extract.ts` (unit-tested, red→green
+on the real failure cases) prefers that line and otherwise normalizes markdown/LaTeX
+and takes the last parseable math line; tools mode runs the same dispatch loop +
+empty-answer retry guard as `src/agent.ts`; `num_predict` is 1024 (agent.ts's value).
+The deterministic checker (`src/checker.ts`) and its tolerances are untouched — the
+grading bar did not move, only what gets handed to it.
+
+## 2026-07-18 · Demo model: gemma4:e2b
+
+Measured on the fixed harness, 10-problem set, CPU-only demo machine, temperature 0:
+
+| model      | raw   | +tools | raw avg | +tools avg |
+|------------|-------|--------|---------|------------|
+| gemma4:e2b | 10/10 | 10/10  | 15.0 s  | 24.3 s     |
+| gemma4:e4b | 10/10 | 10/10  | 23.3 s  | 56.9 s     |
+
+Rule from the team plan: pick e2b if its with-tools pass rate is ≥ 9/10 or ≥ e4b's.
+Both conditions hold (10/10, tie), and e2b is ~1.6x faster raw / ~2.3x faster with
+tools, so **gemma4:e2b is the demo default** (`MATH_SYNC_MODEL` still swaps it).
+Honesty notes: (1) raw mode already scores 10/10 on both models, so on this set the
+checker's value is **proof of correctness** — the app can show every answer verified
+against the key — rather than an accuracy lift; the differentiator stays "verifies
+rather than claims," not "tools rescue wrong answers." (2) An earlier e2b attempt
+the same night scored 1/10–0/10 and was discarded: that was the extraction bug above,
+not the model.

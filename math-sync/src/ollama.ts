@@ -7,7 +7,9 @@
  */
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-export const MODEL = process.env.MATH_SYNC_MODEL ?? "gemma4:e4b";
+// Demo default: gemma4:e2b — matched e4b at 10/10 with tools on the eval set and is
+// ~1.6–2.3x faster on CPU (see docs/decisions/hackathon-log.md, Jul 18).
+export const MODEL = process.env.MATH_SYNC_MODEL ?? "gemma4:e2b";
 
 export interface ToolCall {
   function: { name: string; arguments: Record<string, unknown> };

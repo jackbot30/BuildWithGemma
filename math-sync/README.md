@@ -16,7 +16,7 @@ it's right," but checked against an answer key.
 ```bash
 bun install
 bun run vendor      # copy KaTeX + function-plot into public/vendor (offline assets)
-ollama pull gemma4:e4b   # or gemma4:e2b for lower latency
+ollama pull gemma4:e2b   # demo default; gemma4:e4b also works (MATH_SYNC_MODEL=gemma4:e4b)
 bun run app         # starts the server + opens a desktop-style Edge window
 ```
 
@@ -56,12 +56,14 @@ The real course is copyrighted and **never committed** (`.gitignore`d); a self-w
 
 One `bun install` + `bun run app`. Answers stream token-by-token (never a frozen
 screen), tool activity is shown live, and a non-developer can drive the whole flow.
-Latency note: on CPU-only hardware the 4B model takes tens of seconds per answer — use
-`gemma4:e2b` (`MATH_SYNC_MODEL=gemma4:e2b`) or an NVIDIA machine for the demo.
+Latency, measured on the demo machine (CPU-only, Jul 18 eval set): `gemma4:e2b`
+averages ~15 s/problem raw and ~24 s with tools; `gemma4:e4b` averages ~23 s raw and
+~57 s with tools. Both scored 10/10 in both modes, so the demo defaults to the faster
+`gemma4:e2b` (`MATH_SYNC_MODEL=gemma4:e4b` to swap back; an NVIDIA machine is faster still).
 
 ## 4. Underlying Model — on-device Gemma 4
 
-- **Model:** `gemma4:e4b` (default) / `gemma4:e2b`, run by **Ollama** on the demo laptop.
+- **Model:** `gemma4:e2b` (default) / `gemma4:e4b`, run by **Ollama** on the demo laptop.
 - **Beyond an API call:** a native function-calling loop (`lookup_course`,
   `check_answer`, `plot`) — Gemma orchestrates retrieval, verification, and graphing.
 - **Airplane-mode proof:** disable Wi-Fi, then ask a question — it still answers. All
@@ -89,7 +91,7 @@ Latency note: on CPU-only hardware the 4B model takes tens of seconds per answer
 
 | Check | How |
 |-------|-----|
-| Local model | `ollama list` shows `gemma4:e4b`; inference runs on this laptop |
+| Local model | `ollama list` shows `gemma4:e2b`; inference runs on this laptop |
 | Runtime | Ollama at `localhost:11434`, called from `src/ollama.ts` (native `/api/chat`) |
 | Network-off | Turn off Wi-Fi → ask a question → still answers (badge shows "✈ offline") |
 | Self-verification | Ask a solvable problem → ✓/✗ badge appears; run `bun run eval` |
