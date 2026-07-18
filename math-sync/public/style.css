@@ -345,3 +345,36 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
   border-radius: 8px; padding: 5px 12px; font: inherit; cursor: pointer;
 }
 .fc-row-study:disabled { opacity: 0.4; cursor: default; border-color: var(--muted); color: var(--muted); }
+
+/* --- feat/srs engine view: study session takes over the Flashcards tab --- */
+.study-stage { max-width: 760px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 14px; padding: 8px 4px 24px; }
+.study-bar { display: flex; align-items: center; gap: 12px; }
+.study-bar .muted { margin-left: auto; font-variant-numeric: tabular-nums; }
+.study-back {
+  border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 8px; background: transparent;
+  color: var(--text); font: inherit; padding: 6px 12px; cursor: pointer;
+}
+.study-back:hover { border-color: var(--accent); color: var(--accent); }
+.study-meter { height: 5px; border-radius: 999px; background: rgba(148, 163, 184, 0.2); overflow: hidden; }
+.study-meter-fill { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width 0.25s; }
+.study-face {
+  min-height: 320px; max-height: 55vh; overflow-y: auto; padding: 28px 32px;
+  border: 1px solid rgba(148, 163, 184, 0.35); border-radius: var(--radius);
+  background: var(--bubble-ai);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5;
+}
+/* type scales with content so long cards read comfortably instead of cramming */
+.study-big { font-size: 24px; }
+.study-med { font-size: 19px; }
+.study-long { font-size: 15.5px; text-align: left; align-items: stretch; justify-content: flex-start; line-height: 1.65; }
+.study-face hr { width: 100%; border: 0; border-top: 1px solid rgba(148, 163, 184, 0.3); margin: 16px 0; }
+.study-q { color: var(--muted); }
+.study-a { color: var(--text); }
+
+/* flip-viewer text sizing (same content-scaled classes as study mode) */
+.fc-card { min-height: 170px; max-height: 40vh; overflow-y: auto; }
+.fc-face { line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fc-face.study-big { font-size: 20px; }
+.fc-face.study-med { font-size: 17px; }
+.fc-face.study-long { font-size: 14.5px; text-align: left; }

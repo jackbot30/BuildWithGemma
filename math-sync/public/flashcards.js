@@ -111,7 +111,9 @@ function buildDeck(deck) {
   function show() {
     const c = deck.cards[i];
     counter.textContent = `${i + 1} / ${deck.cards.length}`;
-    face.textContent = showingBack ? c.back : c.front;
+    const text = showingBack ? c.back : c.front;
+    face.className = `fc-face ${sizeClassFor(text)}`;
+    face.textContent = text;
     card.classList.toggle("back", showingBack);
     hint.textContent = showingBack ? "answer — click to see front" : "click to flip";
     prev.disabled = i === 0;
@@ -159,23 +161,67 @@ function render(bubble, deck) {
  * feat/srs: study session UI (Anki-style). Renders into `host`, works through the
  * due queue with Again/Hard/Good/Easy, persists scheduling after every grade.
  */
-function startStudy(host, decks, deckIndex) {
+function renderMathInEl(el) {
+  if (window.renderMathInElement) {
+    window.renderMathInElement(el, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false },
+      ],
+      throwOnError: false,
+    });
+  }
+}
+
+/** Scale type to content: short prompts big, long ones comfortable + left-aligned. */
+function sizeClassFor(text) {
+  if (text.length > 220) return "study-long";
+  if (text.length > 90) return "study-med";
+  return "study-big";
+}
+
+function startStudy(decks, deckIndex) {
+  const view = document.getElementById("flashcards-view");
+  const listEl = document.getElementById("fc-deck-list");
+  const headEl = view?.querySelector(".evidence-head");
+  if (!view || !listEl) return;
   const deck = decks[deckIndex];
-  const now = Date.now();
-  const queue = buildQueue(deck.cards, now, 20);
-  host.textContent = "";
-  if (queue.length === 0) {
-    const p = document.createElement("p");
-    p.className = "muted";
-    p.textContent = "Nothing due in this deck right now. 🎉";
-    host.appendChild(p);
-    return;
+  const queue = buildQueue(deck.cards, Date.now(), 20);
+
+  // Engine view: the study session takes over the whole Flashcards tab.
+  listEl.hidden = true;
+  if (headEl) headEl.hidden = true;
+  const stage = document.createElement("div");
+  stage.className = "study-stage";
+  view.appendChild(stage);
+
+  function exit() {
+    stage.remove();
+    listEl.hidden = false;
+    if (headEl) headEl.hidden = false;
+    renderList(); // due counts changed
   }
 
-  const box = document.createElement("div");
-  box.className = "study-box";
-  const progress = document.createElement("div");
-  progress.className = "muted study-progress";
+  // Header: back + deck title + counts
+  const bar = document.createElement("div");
+  bar.className = "study-bar";
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "study-back";
+  back.textContent = "← Decks";
+  back.addEventListener("click", exit);
+  const title = document.createElement("strong");
+  title.textContent = deck.title;
+  const counts = document.createElement("span");
+  counts.className = "muted";
+  bar.append(back, title, counts);
+
+  const meter = document.createElement("div");
+  meter.className = "study-meter";
+  const meterFill = document.createElement("div");
+  meterFill.className = "study-meter-fill";
+  meter.appendChild(meterFill);
+
   const face = document.createElement("div");
   face.className = "study-face";
   const showBtn = document.createElement("button");
@@ -185,45 +231,53 @@ function startStudy(host, decks, deckIndex) {
   const grades = document.createElement("div");
   grades.className = "study-grades";
   grades.hidden = true;
-  box.append(progress, face, showBtn, grades);
-  host.appendChild(box);
+
+  stage.append(bar, meter, face, showBtn, grades);
+
+  if (queue.length === 0) {
+    face.textContent = "Nothing due in this deck right now 🎉";
+    face.className = "study-face study-big";
+    showBtn.hidden = true;
+    return;
+  }
 
   let i = 0;
   let reviewed = 0;
-
-  function renderMathIn2(el) {
-    if (window.renderMathInElement) {
-      window.renderMathInElement(el, {
-        delimiters: [
-          { left: "$$", right: "$$", display: true },
-          { left: "$", right: "$", display: false },
-        ],
-        throwOnError: false,
-      });
-    }
-  }
+  const initialTotal = queue.length;
 
   function showCard() {
+    counts.textContent = `${Math.min(i + 1, queue.length)} / ${queue.length}`;
+    meterFill.style.width = `${Math.min(100, Math.round((i / Math.max(queue.length, initialTotal)) * 100))}%`;
     if (i >= queue.length) {
-      box.textContent = "";
-      const doneMsg = document.createElement("p");
-      doneMsg.textContent = `Session done — ${reviewed} card${reviewed === 1 ? "" : "s"} reviewed. Scheduling saved.`;
-      box.appendChild(doneMsg);
+      face.className = "study-face study-big";
+      face.textContent = `Session done — ${reviewed} card${reviewed === 1 ? "" : "s"} reviewed. 🎉`;
+      meterFill.style.width = "100%";
+      showBtn.hidden = true;
+      grades.hidden = true;
       return;
     }
     const card = queue[i];
-    progress.textContent = `${i + 1} / ${queue.length}${card.srs ? "" : " · new card"}`;
+    if (!card.srs) counts.textContent += " · new";
+    face.className = `study-face ${sizeClassFor(card.front)}`;
     face.textContent = card.front;
-    renderMathIn2(face);
+    renderMathInEl(face);
     showBtn.hidden = false;
     grades.hidden = true;
   }
 
   showBtn.addEventListener("click", () => {
     const card = queue[i];
-    face.textContent = `${card.front}\n\n— \n\n${card.back}`;
-    face.innerHTML = face.innerHTML.replace(/\n/g, "<br />");
-    renderMathIn2(face);
+    face.className = `study-face ${sizeClassFor(card.front + card.back)}`;
+    face.textContent = "";
+    const q = document.createElement("div");
+    q.className = "study-q";
+    q.textContent = card.front;
+    const hr = document.createElement("hr");
+    const a = document.createElement("div");
+    a.className = "study-a";
+    a.textContent = card.back;
+    face.append(q, hr, a);
+    renderMathInEl(face);
     showBtn.hidden = true;
     grades.hidden = false;
     grades.textContent = "";
@@ -297,16 +351,7 @@ function renderList() {
       opened = buildDeck(deck);
       if (opened) row.appendChild(opened);
     });
-    study.addEventListener("click", () => {
-      if (opened) {
-        opened.remove();
-        opened = null;
-      }
-      const host = document.createElement("div");
-      row.appendChild(host);
-      opened = host;
-      startStudy(host, decks, index);
-    });
+    study.addEventListener("click", () => startStudy(decks, index));
     del.addEventListener("click", () => {
       deleteDeck(index);
       renderList();
