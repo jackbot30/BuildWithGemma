@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>College Algebra · Orbit</title>
+<!-- orbit-integration-B: served from /orbit/ by math-sync's Bun server (one
+     process, no UI/server.js). This <base> makes relative refs (style.css,
+     app.js, assets/stars.mp4) resolve under /orbit/, while root-absolute paths
+     (/api/…, /vendor/…, /course-asset/…, /srs.js) stay at the origin root and
+     hit the backend routes directly — so no proxy is needed. -->
+<base href="/orbit/">
 <link rel="stylesheet" href="style.css">
 <!-- KaTeX comes from the math-sync backend's vendored copy via the proxy;
      when the backend is down these 404 quietly and math shows as plain text. -->

@@ -22,6 +22,11 @@ import { detectComposerIntent } from "./src/intent.ts"; // feat/flashcards + fea
 const PORT = Number(process.env.PORT) || 8710;
 const HOST = "127.0.0.1";
 const PUBLIC = resolve(import.meta.dir, "public");
+// ── orbit-integration-B: Orbit's static front end, served from the same Bun
+// process (replaces UI/server.js). STATIC ONLY — no new business logic here.
+// Orbit reaches the API/vendor/course-asset routes below via same-origin
+// absolute paths, so no proxy is needed. See the "/orbit/" block in fetch().
+const ORBIT = resolve(import.meta.dir, "..", "UI");
 const IDLE_EXIT_MS = 30_000;
 const NEVER_OPENED_EXIT_MS = 10 * 60_000;
 const wantOpen = process.argv.includes("--open");
@@ -36,6 +41,10 @@ const MIME: Record<string, string> = {
   ".ttf": "font/ttf",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+  ".mp4": "video/mp4", // orbit-integration-B: Orbit's stars.mp4 intro
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
 };
 
 function openAppWindow(url: string): void {
@@ -251,6 +260,28 @@ const server = Bun.serve({
     if (path === "/api/quiz/answer" && req.method === "POST") return handleQuizAnswer(req); // feat/quiz
     if (path === "/api/eval/results") return handleEvalResults();
     if (path === "/api/eval") return handleEval();
+
+    // ── orbit-integration-B BEGIN: serve Orbit's static front end under /orbit/.
+    // STATIC ONLY (files from ../UI); every API/vendor/course-asset call Orbit
+    // makes hits the routes above on this same origin. `/` (math-sync's own UI)
+    // is untouched, so BOTH UIs work from this one process. Delete this block +
+    // the ORBIT const to remove Orbit. ────────────────────────────────────────
+    if (path === "/orbit" || path === "/orbit/") {
+      return new Response(Bun.file(resolve(ORBIT, "index.html")), {
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+    if (path.startsWith("/orbit/")) {
+      const rel = path.slice("/orbit/".length);
+      const orbitPath = resolve(ORBIT, "." + "/" + rel);
+      // Contain to the UI folder — no traversal out of ../UI.
+      if (!orbitPath.startsWith(ORBIT)) return new Response("forbidden", { status: 403 });
+      const orbitFile = Bun.file(orbitPath);
+      if (!(await orbitFile.exists())) return new Response("not found", { status: 404 });
+      const orbitType = MIME[extname(orbitPath)];
+      return new Response(orbitFile, orbitType ? { headers: { "Content-Type": orbitType } } : undefined);
+    }
+    // ── orbit-integration-B END ────────────────────────────────────────────────
 
     // Static files, contained to public/.
     const filePath = resolve(PUBLIC, "." + (path === "/" ? "/index.html" : path));
