@@ -10,6 +10,7 @@ import { lookupCourse } from "./course.ts";
 import { checkAnswer, checkSet } from "./checker.ts";
 import { calculateExpression } from "./calc.ts";
 import { validateProblems, createQuiz, toClientView, inferType, type QuizClientView } from "./quiz.ts"; // feat/quiz
+import { verifySolution } from "./verify.ts";
 
 /** Split a free-form answer ("x=2 or x=3", "2, -2") into bare expressions. */
 function splitAnswers(s: string): string[] {
@@ -69,18 +70,72 @@ const TOOLS: Record<string, Tool> = {
     run: (args, ctx) => lookupCourse(ctx.course, asString(args.query, "query")),
   },
 
+  verify_solution: {
+    schema: {
+      type: "function",
+      function: {
+        name: "verify_solution",
+        description:
+          "Verify proposed equation solution(s) by substituting them back into the original equation and comparing LHS vs RHS numerically. Truly independent — no answer key needed. Use this after solving any equation, before stating solutions to the student.",
+        parameters: {
+          type: "object",
+          properties: {
+            equation: {
+              type: "string",
+              description: "The original equation, e.g. 'x^2 - 5x + 6 = 0' or '2y + 1 = 7'. If no '=' present, RHS is assumed 0.",
+            },
+            proposed: {
+              type: "string",
+              description: "The solution(s) to verify, e.g. '2, 3', 'x = 2 and x = 3', '±1', 'y = 3'",
+            },
+          },
+          required: ["equation", "proposed"],
+        },
+      },
+    },
+    run: (args) => {
+      const equation = asString(args.equation, "equation");
+      const proposed = asString(args.proposed, "proposed");
+      const result = verifySolution(equation, proposed);
+      if (result.ok) {
+        const parts = result.verdicts.map((v) => {
+          // Find the variable name from the equation for display
+          const varMatch = equation.match(/[a-zA-Z]/);
+          const varName = varMatch ? varMatch[0] : "x";
+          return `${varName}=${v.value}: lhs ${v.lhs} = rhs ${v.rhs} ✓`;
+        });
+        return `VERIFIED — ${parts.join("; ")}`;
+      }
+      if (result.verdicts && result.verdicts.length > 0) {
+        const varMatch = equation.match(/[a-zA-Z]/);
+        const varName = varMatch ? varMatch[0] : "x";
+        const parts = result.verdicts.map((v) =>
+          v.ok
+            ? `${varName}=${v.value}: lhs ${v.lhs} = rhs ${v.rhs} ✓`
+            : `${varName}=${v.value}: lhs ${v.lhs} ≠ rhs ${v.rhs}`,
+        );
+        return `NOT VERIFIED — ${parts.join("; ")}`;
+      }
+      return `NOT VERIFIED — ${result.reason ?? "solution did not satisfy the equation"}`;
+    },
+  },
+
   check_answer: {
     schema: {
       type: "function",
       function: {
         name: "check_answer",
         description:
-          "Deterministically verify whether a proposed answer equals the expected answer. Call this on EVERY final numeric or algebraic answer before telling the student. Returns CORRECT or INCORRECT.",
+          "Deterministically verify whether a proposed answer equals the expected answer from the course material. Returns CORRECT or INCORRECT.",
         parameters: {
           type: "object",
           properties: {
             answer: { type: "string", description: "The proposed answer, e.g. 'x = 5' or '3x+2'" },
-            expected: { type: "string", description: "The known-correct answer to check against" },
+            expected: {
+              type: "string",
+              description:
+                "The answer-key value from the course material (via lookup_course) or the quiz/eval key. NEVER your own computed answer — checking your answer against itself proves nothing.",
+            },
           },
           required: ["answer", "expected"],
         },

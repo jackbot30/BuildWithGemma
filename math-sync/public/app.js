@@ -171,11 +171,19 @@ async function ask(message) {
         scheduleRender();
         break;
       case "tool":
-        if (ev.name === "check_answer" && ev.phase === "result") {
+        if (ev.name === "verify_solution" && ev.phase === "result") {
+          const ok = ev.detail.startsWith("VERIFIED");
+          const v = document.createElement("div");
+          v.className = `verdict ${ok ? "ok" : "bad"}`;
+          v.textContent = ok
+            ? "✓ verified by substitution — deterministic, not the model"
+            : "✗ solution did not check out";
+          bubble.appendChild(v);
+        } else if (ev.name === "check_answer" && ev.phase === "result") {
           const ok = ev.detail.startsWith("CORRECT");
           const v = document.createElement("div");
           v.className = `verdict ${ok ? "ok" : "bad"}`;
-          v.textContent = ok ? "✓ verified against the answer key" : "✗ check failed";
+          v.textContent = ok ? "✓ checked against the answer key" : "✗ check failed";
           bubble.appendChild(v);
         } else {
           const brief = ev.detail.length > 80 ? ev.detail.slice(0, 80) + "…" : ev.detail;
