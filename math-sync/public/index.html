@@ -20,6 +20,7 @@
       <nav class="tabs" aria-label="View">
         <button type="button" class="tab" data-view="chat" aria-selected="true">Chat</button>
         <button type="button" class="tab" data-view="evidence" aria-selected="false">Evidence</button>
+        <button type="button" class="tab" data-view="trace" aria-selected="false">Trace</button>
       </nav>
       <div class="controls">
         <span id="net-badge" class="badge">checking network…</span>
@@ -52,11 +53,24 @@
       <div id="eval-runs" class="eval-runs">loading results…</div>
     </section>
 
+    <section id="trace-view" hidden aria-live="polite">
+      <div class="evidence-head">
+        <h1>Trace — what Gemma did</h1>
+        <p class="muted">
+          Per-turn record of the agent loop: every tool call with its arguments and result,
+          model time per round, checker verdicts, and generation speed. Kept in memory
+          (last 20 turns) and appended to <code>traces.log</code>.
+        </p>
+      </div>
+      <div id="trace-list">loading traces…</div>
+    </section>
+
     <form id="composer">
       <input id="input" type="text" autocomplete="off" placeholder="e.g. Solve x^2 - 5x + 6 = 0" />
       <button id="send" type="submit">Ask</button>
     </form>
 
+    <script type="module" src="/trace.js"></script>
     <script type="module" src="/app.js"></script>
   </body>
 </html>

@@ -154,8 +154,13 @@ async function ask(message) {
           bubble.appendChild(v);
         } else {
           const brief = ev.detail.length > 80 ? ev.detail.slice(0, 80) + "…" : ev.detail;
-          addTrace(`↳ ${ev.name} ${ev.phase === "call" ? "·" : "→"} ${brief}`);
+          const ms = ev.durationMs !== undefined ? ` (${ev.durationMs}ms)` : "";
+          addTrace(`↳ ${ev.name} ${ev.phase === "call" ? "·" : "→"} ${brief}${ms}`);
         }
+        break;
+      case "trace":
+        // Full per-turn trace (see trace.js) — the "What Gemma did" drawer.
+        window.msTrace?.attachDrawer(bubble, ev.trace);
         break;
       case "plot":
         addPlot(ev.spec);
@@ -206,13 +211,17 @@ const tabs = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("
 
 let evidenceLoaded = false;
 
+const traceView = document.getElementById("trace-view"); // feat/trace
+
 function showView(view) {
-  const isChat = view !== "evidence";
+  const isChat = view !== "evidence" && view !== "trace";
   chat.hidden = !isChat;
   composer.hidden = !isChat;
-  if (evidenceView) evidenceView.hidden = isChat;
+  if (evidenceView) evidenceView.hidden = view !== "evidence";
+  if (traceView) traceView.hidden = view !== "trace"; // feat/trace
   for (const t of tabs) t.setAttribute("aria-selected", String(t.dataset.view === view));
   if (view === "evidence" && !evidenceLoaded) loadEvidence();
+  if (view === "trace") window.msTrace?.loadTraceList(); // feat/trace — refresh each visit
 }
 
 for (const t of tabs) t.addEventListener("click", () => showView(t.dataset.view ?? "chat"));
