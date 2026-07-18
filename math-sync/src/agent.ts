@@ -45,7 +45,9 @@ async function runTurn(
   messages: OllamaMessage[],
   emit: (e: AgentEvent) => void,
   trace: TraceBuilder,
+  opts: { withTools?: boolean } = {},
 ): Promise<{ text: string; toolCalls: ToolCall[] }> {
+  const withTools = opts.withTools ?? true;
   let text = "";
   const toolCalls: ToolCall[] = [];
   let evalCount: number | undefined;
@@ -54,7 +56,9 @@ async function runTurn(
   try {
     for await (const chunk of streamChat({
       messages,
-      tools: toolSchemas,
+      // The empty-answer retry runs WITHOUT tool schemas: we only want plain
+      // prose here, and offering tools invites another zombie tool round.
+      ...(withTools ? { tools: toolSchemas } : {}),
       options: { temperature: 0.1, num_predict: NUM_PREDICT },
     })) {
       const m = chunk.message;
@@ -119,7 +123,7 @@ export async function runAgent(
           return;
         }
         messages.push({ role: "system", content: "State the final answer to the student in plain text now." });
-        const retry = await runTurn(messages, emit, trace);
+        const retry = await runTurn(messages, emit, trace, { withTools: false });
         emit({ type: "done", text: retry.text.trim() || "(no answer produced)" });
         finishTrace(trace, "retry-answered", emit);
         return;

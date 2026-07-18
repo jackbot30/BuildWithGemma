@@ -90,7 +90,11 @@ async function handleChat(req: Request): Promise<Response> {
   }
   const message = typeof body.message === "string" ? body.message : "";
   if (!message.trim()) return json({ error: "message is required" }, 400);
-  const history = Array.isArray(body.history) ? (body.history as OllamaMessage[]) : [];
+  // Cap history to the last 6 messages before running the agent: on CPU the
+  // per-turn latency and prompt-eval cost grow with context length, and long
+  // transcripts push the small model toward drift. Recent turns are what matter.
+  const allHistory = Array.isArray(body.history) ? (body.history as OllamaMessage[]) : [];
+  const history = allHistory.slice(-6);
 
   // --- course-nav (feat/course-nav): "Ask about this lesson" ---------------
   // If the client sent a lessonId, prepend that lesson's content to this turn
