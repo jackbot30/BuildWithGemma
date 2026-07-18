@@ -334,7 +334,7 @@
       "model": "gemma4:e4b",
       "mode": "tools",
       "startedAt": "2026-07-18T07:51:18.388Z",
-      "done": false,
+      "done": true,
       "problems": [
         {
           "id": "lin-1",
@@ -408,10 +408,32 @@
           "got": "3, -4",
           "pass": true,
           "seconds": 67.65
+        },
+        {
+          "id": "quad-4",
+          "question": "Find the vertex of y = x^2 + 4x + 1.",
+          "expected": [
+            "-2",
+            "-3"
+          ],
+          "got": "-2, -3",
+          "pass": true,
+          "seconds": 98.25
+        },
+        {
+          "id": "quad-5",
+          "question": "Solve 3x^2 - 12 = 0.",
+          "expected": [
+            "2",
+            "-2"
+          ],
+          "got": "2, -2",
+          "pass": true,
+          "seconds": 50.02
         }
       ],
-      "passRate": "8/8",
-      "avgSeconds": 52.64
+      "passRate": "10/10",
+      "avgSeconds": 56.94
     }
   ]
 }
