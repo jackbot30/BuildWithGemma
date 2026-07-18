@@ -9,6 +9,7 @@ import type { CoursePack } from "./course.ts";
 import { lookupCourse } from "./course.ts";
 import { checkAnswer, checkSet } from "./checker.ts";
 import { calculateExpression } from "./calc.ts";
+import { validateProblems, createQuiz, toClientView, type QuizClientView } from "./quiz.ts"; // feat/quiz
 
 /** Split a free-form answer ("x=2 or x=3", "2, -2") into bare expressions. */
 function splitAnswers(s: string): string[] {
@@ -27,6 +28,9 @@ export interface ToolContext {
   course: CoursePack;
   /** Client-render side effects the loop collects (graphs, badges) for the UI. */
   plots: PlotSpec[];
+  /** feat/quiz: quizzes created this round — agent loop emits them to the client (no answers).
+   * Optional so contexts that never render (eval CLI) don't need it. */
+  quizzes?: QuizClientView[];
 }
 
 interface Tool {
@@ -143,6 +147,62 @@ const TOOLS: Record<string, Tool> = {
       const max = args.max === undefined ? 10 : asNumber(args.max, "max");
       ctx.plots.push({ fn, domain: [min, max] });
       return `Graphed ${fn} on [${min}, ${max}] — now visible to the student.`;
+    },
+  },
+
+  // feat/quiz: Gemma composes the quiz; grading stays deterministic (src/quiz.ts → checker.ts).
+  create_quiz: {
+    schema: {
+      type: "function",
+      function: {
+        name: "create_quiz",
+        description:
+          "Create a practice quiz for the student. Provide 3-5 problems; each expected answer must be a short computable value like '3', '-1, 2', or '2x+1' (no units, no prose). The quiz renders on the student's screen and their answers are graded deterministically.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Quiz title, e.g. 'Lesson 1.1 practice'" },
+            problems: {
+              type: "array",
+              description: "The quiz problems with their answer key",
+              items: {
+                type: "object",
+                properties: {
+                  question: { type: "string", description: "The question shown to the student" },
+                  expected: {
+                    type: "string",
+                    description: "The correct answer in plain math form, e.g. '3', '-1, 2', '2x+1'",
+                  },
+                  type: {
+                    type: "string",
+                    enum: ["numeric", "expression"],
+                    description: "'numeric' for a number (or number list), 'expression' for an algebraic expression",
+                  },
+                },
+                required: ["question", "expected", "type"],
+              },
+            },
+          },
+          required: ["title", "problems"],
+        },
+      },
+    },
+    run: (args, ctx) => {
+      const title = asString(args.title, "title").trim() || "Practice quiz";
+      if (!Array.isArray(args.problems)) throw new Error("problems must be an array");
+      const { accepted, rejected } = validateProblems(args.problems as unknown[]);
+      const rejectedNote = rejected
+        .map((r) => `problem ${r.index + 1}: ${r.reason}`)
+        .join("; ");
+      if (accepted.length === 0) {
+        return `Error: no valid problems — ${rejectedNote || "problems array is empty"}. Fix the expected answers (short computable values like '3', '-1, 2', '2x+1') and call create_quiz again.`;
+      }
+      const quiz = createQuiz(title, accepted);
+      (ctx.quizzes ??= []).push(toClientView(quiz));
+      const dropped = rejected.length
+        ? ` Dropped ${rejected.length} invalid problem(s): ${rejectedNote}.`
+        : "";
+      return `Created quiz #${quiz.id} "${title}" with ${accepted.length} problem(s) — now on the student's screen.${dropped} Tell the student to answer in the quiz card; their answers are checked automatically.`;
     },
   },
 };
