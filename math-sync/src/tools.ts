@@ -324,6 +324,14 @@ const TOOLS: Record<string, Tool> = {
 
 export const toolSchemas: ToolSchema[] = Object.values(TOOLS).map((t) => t.schema);
 
+/** Tools offered to the model in CHAT. check_answer is deliberately excluded: with no
+ * course-sourced key in the chat flow, the model can only self-check (circular). Chat's
+ * verifier is verify_solution; check_answer remains for eval/run.ts and quiz grading,
+ * which call it server-side with a real key. */
+export const chatToolSchemas: ToolSchema[] = toolSchemas.filter(
+  (s) => s.function.name !== "check_answer",
+);
+
 export function dispatchTool(name: string, args: Record<string, unknown>, ctx: ToolContext): string {
   const tool = TOOLS[name];
   if (!tool) return `Error: unknown tool "${name}"`;

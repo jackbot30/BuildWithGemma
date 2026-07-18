@@ -9,7 +9,7 @@
 
 import { streamChat, MODEL, type OllamaMessage, type ToolCall } from "./ollama.ts";
 import type { CoursePack } from "./course.ts";
-import { toolSchemas, dispatchTool, type ToolContext, type PlotSpec } from "./tools.ts";
+import { chatToolSchemas, dispatchTool, type ToolContext, type PlotSpec } from "./tools.ts";
 import type { QuizClientView } from "./quiz.ts"; // feat/quiz
 import type { FlashcardDeck } from "./flashcards.ts"; // feat/flashcards
 import { TraceBuilder, recordTrace, type TurnTrace, type TraceOutcome } from "./trace.ts";
@@ -39,7 +39,7 @@ function systemPrompt(course: CoursePack): string {
     "2. ALWAYS call lookup_course before answering any math question — never answer from memory.",
     "3. After solving any equation, call verify_solution with the ORIGINAL equation string and your solutions before stating them to the student.",
     "4. Call calculate for any arithmetic — never do mental math.",
-    "5. Call check_answer only when you have a course-sourced answer key value (from lookup_course or the quiz/eval key). Never call it with your own computed answer as expected — that is circular.",
+    "5. verify_solution is your only checker in chat — never claim an answer is verified unless it returned VERIFIED.",
     "6. Call plot when a graph helps understanding (parabolas, lines, etc.).",
     "7. When asked for a quiz call create_quiz; when asked for flashcards call create_flashcards (front/back drawn from the lesson). Never state quiz answers in your text.",
     "8. Be concise. Plain text. LaTeX $...$ ok for math.",
@@ -64,7 +64,7 @@ async function runTurn(
       messages,
       // The empty-answer retry runs WITHOUT tool schemas: we only want plain
       // prose here, and offering tools invites another zombie tool round.
-      ...(withTools ? { tools: toolSchemas } : {}),
+      ...(withTools ? { tools: chatToolSchemas } : {}),
       options: { temperature: 0.1, num_predict: NUM_PREDICT },
     })) {
       const m = chunk.message;
@@ -168,7 +168,12 @@ export async function runAgent(
         const args = call.function.arguments ?? {};
         emit({ type: "tool", name, phase: "call", detail: JSON.stringify(args) });
         const t0 = Date.now();
-        const result = dispatchTool(name, args, ctx);
+        // Defense in depth: check_answer is not in chatToolSchemas, but if the model
+        // hallucinates the call anyway, redirect instead of running a circular check.
+        const result =
+          name === "check_answer"
+            ? "Error: check_answer is not available in chat — call verify_solution with the original equation and your solutions instead."
+            : dispatchTool(name, args, ctx);
         const durationMs = Date.now() - t0;
         trace.addToolCall(name, args, result, durationMs);
         emit({ type: "tool", name, phase: "result", detail: result, durationMs });

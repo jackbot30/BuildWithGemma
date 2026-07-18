@@ -65,16 +65,20 @@ averages ~15 s/problem raw and ~24 s with tools; `gemma4:e4b` averages ~23 s raw
 
 - **Model:** `gemma4:e2b` (default) / `gemma4:e4b`, run by **Ollama** on the demo laptop.
 - **Beyond an API call:** a native function-calling loop (`lookup_course`,
-  `check_answer`, `plot`, `calculate`) — Gemma orchestrates retrieval,
-  verification, arithmetic, and graphing.
+  `verify_solution`, `calculate`, `plot`, `create_quiz`, `create_flashcards`) —
+  Gemma orchestrates retrieval, verification, arithmetic, graphing, and study-material
+  composition. (`check_answer` is deliberately NOT offered in chat: with no answer key
+  in that flow it could only self-check; it serves the eval harness and quiz grading,
+  which call it server-side with a real key.)
 - **Airplane-mode proof:** disable Wi-Fi, then ask a question — it still answers. All
   front-end assets (KaTeX, function-plot) are vendored locally; zero CDN calls.
 
 ## 5. Evidence & Evaluation — it verifies itself
 
-- `check_answer` verifies every final answer by evaluating both the model's answer and
-  the answer key at random sample points (see `src/checker.ts`) — **ground truth is the
-  answer key, never Gemma's own output** (no circularity).
+- In chat, `verify_solution` checks equation solutions by **substituting them into the
+  original equation** via mathjs — independent ground truth, no key needed, never
+  Gemma's own output. In the eval harness and quiz grading, `check_answer` grades
+  against a real answer key at random sample points (see `src/checker.ts`).
 - `bun run eval` runs the 10-problem set (`eval/problems.json`) **raw vs. +tools**,
   prints a pass-rate table, and writes each result to `eval/results.json`
   (incrementally, so a long run is monitorable and survives interruption).
@@ -103,7 +107,7 @@ averages ~15 s/problem raw and ~24 s with tools; `gemma4:e4b` averages ~23 s raw
 server.ts            Bun server: static UI, SSE chat, course + eval-results APIs, Edge --app
 src/ollama.ts        native Ollama /api/chat streaming client
 src/agent.ts         streaming tool-calling loop (capped, empty-answer guard)
-src/tools.ts         lookup_course · check_answer · plot · calculate  (schemas + validated dispatch)
+src/tools.ts         lookup_course · verify_solution · calculate · plot · create_quiz · create_flashcards · check_answer(eval/quiz only)
 src/checker.ts       deterministic verifier (random-point equality — the Evidence engine)
 src/course.ts        course-pack loader (COURSE_DIR override)
 public/              UI (index.html, app.js, style.css) + vendor/ (KaTeX, function-plot)
