@@ -15,6 +15,12 @@ const PORT = Number(process.env.PORT) || 8000;
 const BACKEND_PORT = Number(process.env.BACKEND) || 8710;
 const ROOT = __dirname;
 
+// Shared browser modules that live in math-sync/public and must stay
+// single-source (SRS scheduling, missed-question logic). We proxy the exact
+// files the backend serves rather than copy them into UI/, so the scheduling
+// and grading logic has one home (tested in math-sync/src/*.test.ts).
+const PROXY_MODULES = new Set(["/srs.js", "/missed.js"]);
+
 const MIME = {
   ".html": "text/html",
   ".js": "text/javascript",
@@ -57,6 +63,10 @@ http
   .createServer((req, res) => {
     const url = req.url.split("?")[0];
     if (PROXY_PREFIXES.some((p) => url === p.slice(0, -1) || url.startsWith(p))) {
+      return proxy(req, res);
+    }
+    // Single-source browser modules (SRS/missed): serve the backend's copy.
+    if (PROXY_MODULES.has(url)) {
       return proxy(req, res);
     }
 
