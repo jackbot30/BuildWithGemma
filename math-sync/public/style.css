@@ -604,3 +604,35 @@ html:not([data-theme="orbit"]) #orbit-stars { display: none; }
 
 /* Lesson images keep a plum frame instead of the default white radius */
 [data-theme="orbit"] #lesson-content img { border: 1px solid var(--orbit-line); border-radius: 4px; }
+
+/* --- Network diagrams (md-images.js): shown only in online mode. Offline (or
+       before hydration) the <figcaption> becomes a labelled placeholder, so a
+       lesson never shows a broken image and never fires an external request in
+       airplane mode. Online, the real <img> loads and its verbose alt caption is
+       hidden. --- */
+#lesson-content .net-img { margin: 16px 0; }
+#lesson-content .net-img img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius, 6px);
+}
+/* Online: image present, drop the long descriptive caption. */
+#lesson-content .net-img:not(.net-img--offline) > figcaption { display: none; }
+/* Offline: the caption stands in for the diagram. */
+#lesson-content .net-img--offline > figcaption {
+  padding: 12px 14px;
+  border: 1px dashed var(--muted, #8a8a8a);
+  border-radius: var(--radius, 6px);
+  font-size: 13px;
+  color: var(--muted, #8a8a8a);
+  opacity: 0.9;
+}
+#lesson-content .net-img--offline > figcaption::before {
+  content: "🛰  diagram — online only\A";
+  white-space: pre;
+  font-weight: 600;
+  opacity: 0.75;
+}
+[data-theme="orbit"] #lesson-content .net-img img { border: 1px solid var(--orbit-line); }
+[data-theme="orbit"] #lesson-content .net-img--offline > figcaption { border-color: var(--orbit-line); }
