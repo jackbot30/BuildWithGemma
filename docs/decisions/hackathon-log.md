@@ -156,3 +156,17 @@ truthful per path: "verified by substitution — deterministic, not the model" v
 passed the original equation, not its own answer. Known limits (documented, not
 hidden): prompt-only enforcement — the model can still skip the call on some runs;
 single-variable equations only.
+
+## 2026-07-18 · check_answer removed from the chat loop entirely
+
+Follow-through on the circularity fix: descriptions discouraged self-checking but
+nothing prevented it, and the chat badge ("checked against the answer key") could
+still be triggered by a key-less, model-supplied expected value. Chat now offers
+`chatToolSchemas` — every tool except check_answer — and the loop redirects any
+hallucinated check_answer call to verify_solution. check_answer's legitimate
+callers (eval harness, quiz grading) invoke it server-side with a real key and are
+unchanged. Also this morning: composer-intent detection extracted to src/intent.ts
+(tested against the two live prose-instead-of-tool failures) and enforced by the
+agent loop; plot sanitizes model-supplied domains (inverted → swap, degenerate →
+default); lookup results strip image markdown before reaching the model (~fewer
+wasted tokens per turn on a CPU-bound model).

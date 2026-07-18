@@ -15,6 +15,7 @@ import { buildOutline } from "./src/outline.ts"; // course-nav (feat/course-nav)
 import { runAgent, type AgentEvent } from "./src/agent.ts";
 import { prewarm, MODEL, type OllamaMessage } from "./src/ollama.ts";
 import { checkAnswer, checkSet } from "./src/checker.ts";
+import { detectComposerIntent } from "./src/intent.ts"; // feat/flashcards + feat/quiz
 
 // PORT env override so a second instance can run alongside a live demo (e.g. for
 // testing). Defaults to 8710 — the port the app + shortcut expect.
@@ -105,21 +106,15 @@ async function handleChat(req: Request): Promise<Response> {
     ? `The student has this lesson open:\n\n${openLesson.content}\n\n---\n\nStudent question: ${message}`
     : message;
   // --- end course-nav -------------------------------------------------------
-  // feat/flashcards + feat/quiz: small-model tool-selection nudge. e2b reliably
-  // grounds via lookup_course but can then answer in prose instead of calling the
-  // composer tool — a per-turn instruction right next to the request fixes it.
-  if (/flash\s*cards?|anki/i.test(message)) {
+  // feat/flashcards + feat/quiz: composer-intent detection (src/intent.ts, tested).
+  // Nudge the turn AND enforce the tool in the agent loop — e2b sometimes writes
+  // the content in prose otherwise (seen live twice).
+  const requiredTool = detectComposerIntent(message);
+  if (requiredTool === "create_flashcards") {
     turn += "\n\n(Instruction: call the create_flashcards tool with 5-15 front/back cards drawn from the lesson. Do not list the cards in your reply.)";
-  } else if (/\bquiz(zes)?\b|practice problems/i.test(message)) {
+  } else if (requiredTool === "create_quiz") {
     turn += "\n\n(Instruction: call the create_quiz tool with 3-5 problems from the lesson. Do not state the answers in your reply.)";
   }
-  // The nudge alone isn't always enough on e2b — enforce the composer tool: the
-  // agent loop grants one extra round with a firm instruction if it wasn't called.
-  const requiredTool = /flash\s*cards?|anki/i.test(message)
-    ? "create_flashcards"
-    : /\bquiz(zes)?\b|practice problems/i.test(message)
-      ? "create_quiz"
-      : undefined;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {

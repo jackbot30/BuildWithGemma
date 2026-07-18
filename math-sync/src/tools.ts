@@ -201,8 +201,14 @@ const TOOLS: Record<string, Tool> = {
     },
     run: (args, ctx) => {
       const fn = asString(args.fn, "fn").replace(/\*\*/g, "^");
-      const min = args.min === undefined ? -10 : asNumber(args.min, "min");
-      const max = args.max === undefined ? 10 : asNumber(args.max, "max");
+      let min = args.min === undefined ? -10 : asNumber(args.min, "min");
+      let max = args.max === undefined ? 10 : asNumber(args.max, "max");
+      // Sanitize model-supplied domains: inverted → swap; degenerate/non-finite/
+      // absurd → default. A blank graph live is worse than a clamped one.
+      if (min > max) [min, max] = [max, min];
+      if (!Number.isFinite(min) || !Number.isFinite(max) || min === max || max - min > 1e6) {
+        [min, max] = [-10, 10];
+      }
       ctx.plots.push({ fn, domain: [min, max] });
       return `Graphed ${fn} on [${min}, ${max}] — now visible to the student.`;
     },
