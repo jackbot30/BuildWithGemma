@@ -140,3 +140,19 @@ symbolic fails but both sides agree within 0.1% relative, return equal:true with
 `approx:true` so the UI can say "≈ correct (rounded)". The strict path and its
 tolerances are unchanged; empty answers and parse failures now carry explicit
 reasons instead of a silent INCORRECT.
+
+## 2026-07-18 · verify_solution: substitution replaces the circular chat ✓
+
+Three independent audits converged on the same finding: in the chat flow the model
+called `check_answer` with its own answer as `expected` — a trivially-correct check
+our own Trace tab exposed. Rather than hide the trace, we made verification real:
+new `verify_solution(equation, proposed)` substitutes the proposed solutions into
+the ORIGINAL equation via mathjs and compares LHS/RHS per solution — independent
+ground truth, no key needed. The system prompt (rewritten terse, refusal rule
+first) instructs verify-before-stating; `check_answer` remains for quiz/eval where
+a real key exists, with its schema now forbidding self-checking. Badge wording is
+truthful per path: "verified by substitution — deterministic, not the model" vs
+"checked against the answer key". Live-proven twice (agent + post-merge): model
+passed the original equation, not its own answer. Known limits (documented, not
+hidden): prompt-only enforcement — the model can still skip the call on some runs;
+single-variable equations only.
