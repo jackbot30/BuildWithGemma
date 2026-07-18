@@ -21,6 +21,9 @@ export type AgentEvent =
   | { type: "error"; message: string };
 
 const MAX_ROUNDS = 5;
+// Test knob only: lets smoke tests cap generation cheaply on a shared CPU.
+// Unset (the normal case, incl. prod/demo) keeps the shipped default of 1024.
+const NUM_PREDICT = Number(process.env.MATH_SYNC_NUM_PREDICT ?? "") || 1024;
 
 function systemPrompt(course: CoursePack): string {
   const lessons = course.lessons.map((l) => l.title).join("; ");
@@ -51,7 +54,7 @@ async function runTurn(
     for await (const chunk of streamChat({
       messages,
       tools: toolSchemas,
-      options: { temperature: 0.1, num_predict: 1024 },
+      options: { temperature: 0.1, num_predict: NUM_PREDICT },
     })) {
       const m = chunk.message;
       if (m?.content) {
