@@ -7,7 +7,7 @@
  * Isolated on purpose: nothing here imports agent/server code.
  */
 
-import { create, all, type FactoryFunctionMap } from "mathjs";
+import { create, all, type FactoryFunctionMap, type MathNode } from "mathjs";
 import { checkAnswer, checkSet } from "./checker.ts";
 
 const math = create(all as FactoryFunctionMap, {});
@@ -56,7 +56,7 @@ function splitParts(s: string): string[] {
 
 /** Why a single expected part is invalid for its type, or null if fine. */
 function partProblem(part: string, type: ProblemType): string | null {
-  let node: ReturnType<typeof math.parse>;
+  let node: MathNode;
   try {
     node = math.parse(part.replace(/\*\*/g, "^"));
   } catch (e) {

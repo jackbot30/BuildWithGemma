@@ -139,6 +139,31 @@ function handleTraces(): Response {
 }
 // ── feat/trace END ──────────────────────────────────────────────────────────
 
+// ── feat/quiz BEGIN (feature lives in src/quiz.ts + public/quiz.js; delete this
+// block + the single "/api/quiz/answer" route line below to remove it) ───────
+import { gradeAnswer } from "./src/quiz.ts";
+async function handleQuizAnswer(req: Request): Promise<Response> {
+  let body: { quizId?: unknown; index?: unknown; answer?: unknown };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return json({ error: "invalid JSON" }, 400);
+  }
+  const quizId = typeof body.quizId === "number" ? body.quizId : NaN;
+  const index = typeof body.index === "number" ? body.index : NaN;
+  const answer = typeof body.answer === "string" ? body.answer : "";
+  if (!Number.isInteger(quizId) || !Number.isInteger(index) || !answer.trim()) {
+    return json({ error: "quizId (int), index (int) and answer (non-empty string) are required" }, 400);
+  }
+  const r = gradeAnswer(quizId, index, answer);
+  if (r.status === "quiz-not-found") return json({ error: `quiz ${quizId} not found` }, 404);
+  if (r.status === "bad-index") return json({ error: `quiz ${quizId} has no problem ${index}` }, 400);
+  // r.expected is only set by quiz.ts after a correct answer or the 3rd failed
+  // attempt — never leaked on a retryable wrong answer.
+  return json({ pass: r.pass, attempts: r.attempts, normalized: r.normalized, expected: r.expected });
+}
+// ── feat/quiz END ────────────────────────────────────────────────────────────
+
 const server = Bun.serve({
   hostname: HOST,
   port: PORT,
@@ -197,6 +222,7 @@ const server = Bun.serve({
     // --- END calculator feature ---
     if (path === "/api/chat" && req.method === "POST") return handleChat(req);
     if (path === "/api/traces") return handleTraces(); // feat/trace
+    if (path === "/api/quiz/answer" && req.method === "POST") return handleQuizAnswer(req); // feat/quiz
     if (path === "/api/eval/results") return handleEvalResults();
     if (path === "/api/eval") return handleEval();
 
