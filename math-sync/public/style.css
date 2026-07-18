@@ -96,6 +96,9 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Muted "— stopped —" note appended when a turn is aborted via the Stop button. */
+.stopped-note { font-style: italic; opacity: 0.75; }
+
 /* --- Chat | Evidence tabs --- */
 .tabs { display: flex; gap: 6px; }
 .tab {

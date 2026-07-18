@@ -72,7 +72,13 @@ const startedAt = Date.now();
 const json = (data: unknown, status = 200) => Response.json(data, { status });
 
 function sse(controller: ReadableStreamDefaultController<Uint8Array>, event: AgentEvent): void {
-  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+  // A disconnected client (Stop button / closed window) makes enqueue throw once
+  // the stream is closed. Swallow it so it can't bubble into the agent loop.
+  try {
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`));
+  } catch {
+    // Client is gone — nothing to send to. The agent loop keeps its own state.
+  }
 }
 
 async function handleChat(req: Request): Promise<Response> {
@@ -99,7 +105,12 @@ async function handleChat(req: Request): Promise<Response> {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       await runAgent(history, turn, course, (e) => sse(controller, e));
-      controller.close();
+      // close() throws if the client already disconnected — ignore it.
+      try {
+        controller.close();
+      } catch {
+        // Stream already torn down by the client.
+      }
     },
   });
   return new Response(stream, {
