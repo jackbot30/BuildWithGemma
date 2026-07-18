@@ -11,6 +11,7 @@
 import { resolve, extname } from "node:path";
 import { existsSync } from "node:fs";
 import { loadCourse } from "./src/course.ts";
+import { buildOutline } from "./src/outline.ts"; // course-nav (feat/course-nav)
 import { runAgent, type AgentEvent } from "./src/agent.ts";
 import { prewarm, MODEL, type OllamaMessage } from "./src/ollama.ts";
 import { checkAnswer, checkSet } from "./src/checker.ts";
@@ -75,7 +76,7 @@ function sse(controller: ReadableStreamDefaultController<Uint8Array>, event: Age
 }
 
 async function handleChat(req: Request): Promise<Response> {
-  let body: { message?: unknown; history?: unknown };
+  let body: { message?: unknown; history?: unknown; lessonId?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -85,9 +86,19 @@ async function handleChat(req: Request): Promise<Response> {
   if (!message.trim()) return json({ error: "message is required" }, 400);
   const history = Array.isArray(body.history) ? (body.history as OllamaMessage[]) : [];
 
+  // --- course-nav (feat/course-nav): "Ask about this lesson" ---------------
+  // If the client sent a lessonId, prepend that lesson's content to this turn
+  // so the model answers in the context of the open lesson.
+  const lessonId = typeof body.lessonId === "string" ? body.lessonId : "";
+  const openLesson = lessonId ? course.lessons.find((l) => l.id === lessonId) : undefined;
+  const turn = openLesson
+    ? `The student has this lesson open:\n\n${openLesson.content}\n\n---\n\nStudent question: ${message}`
+    : message;
+  // --- end course-nav -------------------------------------------------------
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      await runAgent(history, message, course, (e) => sse(controller, e));
+      await runAgent(history, turn, course, (e) => sse(controller, e));
       controller.close();
     },
   });
@@ -142,6 +153,17 @@ const server = Bun.serve({
         lessons: course.lessons.map((l) => ({ id: l.id, title: l.title })),
       });
     }
+    // --- course-nav (feat/course-nav): outline + lesson content ------------
+    if (path === "/api/course/outline") {
+      return json({ units: buildOutline(course.syllabus, course.lessons) });
+    }
+    if (path === "/api/course/lesson") {
+      const id = url.searchParams.get("id") ?? "";
+      const lesson = course.lessons.find((l) => l.id === id);
+      if (!lesson) return json({ error: `lesson "${id}" not found` }, 404);
+      return json({ id: lesson.id, title: lesson.title, content: lesson.content });
+    }
+    // --- end course-nav ------------------------------------------------------
     if (path === "/api/chat" && req.method === "POST") return handleChat(req);
     if (path === "/api/eval/results") return handleEvalResults();
     if (path === "/api/eval") return handleEval();

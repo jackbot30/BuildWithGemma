@@ -32,6 +32,14 @@
       </div>
     </header>
 
+    <!-- course-nav (feat/course-nav): sidebar + lesson viewer. Delete this
+         .content-row wrapper (keeping its children), the <aside>, the
+         #lesson-view section, and the course-nav.js script tag to remove. -->
+    <div class="content-row">
+      <aside id="course-nav" aria-label="Course outline">
+        <nav id="course-outline">loading outline…</nav>
+      </aside>
+      <div class="main-col">
     <main id="chat" aria-live="polite">
       <div class="msg assistant">
         <div class="bubble">
@@ -52,11 +60,23 @@
       <div id="eval-runs" class="eval-runs">loading results…</div>
     </section>
 
+    <!-- course-nav (feat/course-nav): lesson viewer pane -->
+    <section id="lesson-view" hidden aria-live="polite">
+      <div class="lesson-head">
+        <h1 id="lesson-title"></h1>
+        <button type="button" id="ask-lesson">Ask about this lesson</button>
+      </div>
+      <article id="lesson-content"></article>
+    </section>
+
     <form id="composer">
       <input id="input" type="text" autocomplete="off" placeholder="e.g. Solve x^2 - 5x + 6 = 0" />
       <button id="send" type="submit">Ask</button>
     </form>
+      </div>
+    </div>
 
     <script type="module" src="/app.js"></script>
+    <script type="module" src="/course-nav.js"></script>
   </body>
 </html>

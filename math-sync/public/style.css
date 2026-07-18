@@ -122,3 +122,43 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .prob-table tr.pass .verdict-cell { color: var(--ok); }
 .prob-table tr.fail .verdict-cell { color: var(--bad); }
 .prob-table tr.fail td { background: rgba(239, 68, 68, 0.07); }
+
+/* --- course navigator (feat/course-nav) — TEMPORARY UI, restyle pending.
+       Delete this whole block to remove the feature's styles. --- */
+.content-row { flex: 1; display: flex; min-height: 0; }
+.main-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+#course-nav {
+  width: 240px; flex-shrink: 0; overflow-y: auto; padding: 14px 10px;
+  background: var(--panel); border-right: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 13.5px;
+}
+#course-nav .unit summary {
+  cursor: pointer; font-weight: 600; padding: 5px 6px; border-radius: 6px;
+  color: var(--text); list-style-position: inside;
+}
+#course-nav .unit summary:hover { background: rgba(148, 163, 184, 0.12); }
+.lesson-list { list-style: none; margin: 2px 0 8px; padding: 0 0 0 14px; }
+.lesson-link {
+  display: block; width: 100%; text-align: left; padding: 5px 8px;
+  border: 0; border-radius: 6px; background: transparent; color: var(--muted);
+  font: inherit; cursor: pointer;
+}
+.lesson-link:hover { color: var(--text); background: rgba(148, 163, 184, 0.12); }
+.lesson-link.active { color: var(--accent); background: rgba(148, 163, 184, 0.15); font-weight: 600; }
+
+#lesson-view { flex: 1; overflow-y: auto; padding: 20px 26px; }
+.lesson-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+.lesson-head h1 { font-size: 20px; margin: 0; }
+#ask-lesson {
+  padding: 8px 16px; border: 0; border-radius: 10px;
+  background: var(--accent); color: #06121f; font-weight: 600; cursor: pointer;
+}
+#lesson-content { max-width: 78ch; }
+#lesson-content h2, #lesson-content h3, #lesson-content h4 { margin: 18px 0 6px; }
+#lesson-content p, #lesson-content li { line-height: 1.6; }
+#lesson-content code { font-family: ui-monospace, monospace; font-size: 0.92em; background: rgba(148, 163, 184, 0.15); padding: 1px 5px; border-radius: 4px; }
+#lesson-content pre { background: var(--bubble-ai); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 10px 14px; overflow-x: auto; }
+#lesson-content pre code { background: transparent; padding: 0; }
+#lesson-content blockquote { margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--accent); color: var(--muted); }
+/* --- end course navigator --- */
