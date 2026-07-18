@@ -95,6 +95,13 @@ export async function runAgent(
   userInput: string,
   course: CoursePack,
   emit: (e: AgentEvent) => void,
+  /**
+   * What to record in the trace as the student's question. When a lesson is
+   * open, `userInput` is a lesson-prefixed blob sent to the model; pass the raw
+   * student message here so the Trace tab shows the real question. Defaults to
+   * `userInput` when the two are the same.
+   */
+  displayInput?: string,
 ): Promise<void> {
   const ctx: ToolContext = { course, plots: [] };
   const system = systemPrompt(course);
@@ -106,7 +113,7 @@ export async function runAgent(
   const trace = new TraceBuilder({
     model: MODEL,
     systemPromptChars: system.length,
-    userInput,
+    userInput: displayInput ?? userInput,
   });
 
   let lastText = "";

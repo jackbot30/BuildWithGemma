@@ -108,7 +108,9 @@ async function handleChat(req: Request): Promise<Response> {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      await runAgent(history, turn, course, (e) => sse(controller, e));
+      // Trace records the student's raw message, not the lesson-prefixed blob
+      // (`turn`) that the model receives.
+      await runAgent(history, turn, course, (e) => sse(controller, e), message);
       // close() throws if the client already disconnected — ignore it.
       try {
         controller.close();
