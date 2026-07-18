@@ -109,7 +109,8 @@ async function ask(message) {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    // course-nav (feat/course-nav): one-shot lesson context for this turn.
+    body: JSON.stringify({ message, history, lessonId: window.courseNav?.takeLessonContext?.() }),
   });
   if (!res.body) {
     bubble.textContent = "No response stream.";
