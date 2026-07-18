@@ -1,5 +1,5 @@
 // course-nav (feat/course-nav): Units → Lessons sidebar + lesson viewer.
-// TEMPORARY UI (restyle pending). All feature JS lives in this one file; the only
+// All feature JS lives in this one file; the only
 // hooks elsewhere are one script tag in index.html, a marked CSS block in
 // style.css, and app.js reading window.courseNav.takeLessonContext() on send.
 // Everything is local — no CDN/external URLs (airplane-mode requirement).

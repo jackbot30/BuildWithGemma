@@ -1,4 +1,4 @@
-// Calculator tab (feat/calculator) — TEMPORARY UI, restyle pass tomorrow.
+// Calculator tab (feat/calculator): scientific calc + grapher via mathjs.
 // Self-contained: this file + the #calculator section in index.html + the
 // ".calc-*" block in style.css are the whole feature; delete all three to remove.
 //

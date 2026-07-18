@@ -183,7 +183,7 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .prob-table tr.fail .verdict-cell { color: var(--bad); }
 .prob-table tr.fail td { background: rgba(239, 68, 68, 0.07); }
 
-/* --- course navigator (feat/course-nav) — TEMPORARY UI, restyle pending.
+/* --- course navigator (feat/course-nav): Units → Lessons sidebar + lesson viewer.
        Delete this whole block to remove the feature's styles. --- */
 .content-row { flex: 1; display: flex; min-height: 0; }
 .main-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -202,9 +202,10 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .lesson-link {
   display: block; width: 100%; text-align: left; padding: 5px 8px;
   border: 0; border-radius: 6px; background: transparent; color: var(--muted);
-  font: inherit; cursor: pointer;
+  font: inherit; cursor: pointer; transition: color 0.12s, background 0.12s;
 }
 .lesson-link:hover { color: var(--text); background: rgba(148, 163, 184, 0.12); }
+.lesson-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .lesson-link.active { color: var(--accent); background: rgba(148, 163, 184, 0.15); font-weight: 600; }
 
 #lesson-view { flex: 1; overflow-y: auto; padding: 20px 26px; }
@@ -214,7 +215,9 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 #ask-lesson {
   padding: 8px 16px; border: 0; border-radius: 10px;
   background: var(--accent); color: #06121f; font-weight: 600; cursor: pointer;
+  transition: filter 0.15s;
 }
+#ask-lesson:hover { filter: brightness(1.08); }
 #back-to-chat {
   padding: 8px 14px; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px;
   background: transparent; color: var(--text); font-weight: 600; cursor: pointer;
@@ -230,7 +233,7 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 #lesson-content blockquote { margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--accent); color: var(--muted); }
 /* --- end course navigator --- */
 
-/* --- Calculator view (feat/calculator) — TEMPORARY styling, restyle tomorrow --- */
+/* --- Calculator view (feat/calculator): scientific calc + grapher via mathjs --- */
 #calculator {
   flex: 1; overflow-y: auto; padding: 24px;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px;
@@ -251,16 +254,22 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
   width: 90px; padding: 10px 8px; border-radius: 10px;
   border: 1px solid var(--muted); background: var(--bg); color: var(--text);
 }
+#calc-input:focus, #graph-fn:focus, #graph-min:focus, #graph-max:focus {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent);
+}
 #calc-form button, #graph-form button {
   padding: 10px 18px; border: 0; border-radius: 10px;
   background: var(--accent); color: #06121f; font-weight: 600; cursor: pointer;
+  transition: filter 0.15s;
 }
+#calc-form button:hover:not(:disabled), #graph-form button:hover:not(:disabled) { filter: brightness(1.08); }
 #calc-form button:disabled, #graph-form button:disabled { opacity: 0.5; cursor: default; }
 #calc-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .calc-entry {
   display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
   padding: 8px 12px; border-radius: 8px; background: var(--bubble-ai);
   border: 1px solid rgba(148, 163, 184, 0.2); cursor: pointer;
+  transition: border-color 0.15s;
 }
 .calc-entry:hover { border-color: var(--accent); }
 .calc-expr { color: var(--muted); overflow-wrap: anywhere; }
@@ -268,7 +277,7 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .calc-entry.error .calc-result { color: var(--bad); font-weight: 400; white-space: normal; }
 .calc-error { color: var(--bad); font-size: 13px; margin: 0 0 10px; }
 
-/* --- feat/trace: "What Gemma did" drawers + Trace tab (TEMPORARY styling) --- */
+/* --- feat/trace: "What Gemma did" drawers + Trace tab --- */
 #trace-view { flex: 1; overflow-y: auto; padding: 20px; }
 .trace-drawer {
   margin-top: 10px; font-size: 12.5px;
@@ -276,7 +285,8 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
   background: rgba(148, 163, 184, 0.06);
 }
 #trace-list .trace-drawer { margin-top: 0; margin-bottom: 10px; background: var(--bubble-ai); }
-.trace-drawer summary { cursor: pointer; padding: 7px 12px; color: var(--muted); user-select: none; }
+.trace-drawer summary { cursor: pointer; padding: 7px 12px; color: var(--muted); user-select: none; transition: color 0.12s; }
+.trace-drawer summary:hover { color: var(--text); }
 .trace-drawer[open] summary { border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
 .trace-body { padding: 8px 14px 12px; }
 .trace-body h3 { font-size: 12px; margin: 10px 0 4px; color: var(--text); font-weight: 600; }
@@ -288,59 +298,74 @@ select { background: var(--bg); color: var(--text); border: 1px solid var(--mute
 .trace-meta { margin: 10px 0 0; color: var(--muted); font-size: 11.5px; }
 .trace-when { float: right; font-size: 11px; margin-left: 10px; }
 
-/* --- feat/quiz: quiz card in chat — TEMPORARY styling, restyle pass tomorrow.
+/* --- feat/quiz: quiz card rendered inline in the chat stream.
        Delete this whole block to remove the feature's styles. --- */
 .quiz-card {
-  margin-top: 12px; padding: 12px 14px; white-space: normal;
-  border: 1px solid rgba(148, 163, 184, 0.25); border-radius: var(--radius);
-  background: rgba(148, 163, 184, 0.06);
+  margin-top: 12px; padding: 16px 18px; white-space: normal;
+  border: 1px solid rgba(148, 163, 184, 0.22); border-radius: var(--radius);
+  background: var(--bubble-ai);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
-.quiz-title { margin: 0 0 2px; font-size: 15px; }
-.quiz-score { margin: 0 0 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
-.quiz-score.all-done { color: var(--ok); }
-.quiz-problems { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
-.quiz-question { margin-bottom: 6px; }
+.quiz-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; }
+.quiz-score {
+  margin: 0 0 12px; font-size: 12px; font-weight: 600; color: var(--muted);
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  background: rgba(148, 163, 184, 0.15);
+}
+.quiz-score.all-done { color: var(--ok); background: rgba(34, 197, 94, 0.15); }
+.quiz-problems { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 14px; }
+.quiz-question { margin-bottom: 8px; }
 .quiz-answer-row { display: flex; gap: 8px; }
 .quiz-input {
-  flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px;
+  flex: 1; min-width: 0; padding: 8px 11px; border-radius: 8px;
   border: 1px solid var(--muted); background: var(--bg); color: var(--text);
   font-family: ui-monospace, monospace; font-size: 13px;
+  transition: border-color 0.15s;
 }
+.quiz-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .quiz-input:disabled { opacity: 0.6; }
 .quiz-check {
-  padding: 7px 14px; border: 0; border-radius: 8px;
+  padding: 8px 16px; border: 0; border-radius: 8px;
   background: var(--accent); color: #06121f; font-weight: 600; cursor: pointer;
+  transition: filter 0.15s;
 }
+.quiz-check:hover:not(:disabled) { filter: brightness(1.08); }
 .quiz-check:disabled { opacity: 0.5; cursor: default; }
-.quiz-result { margin-top: 4px; font-size: 13px; min-height: 1em; }
+.quiz-result { margin-top: 6px; font-size: 13px; min-height: 1em; }
 .quiz-result.ok { color: var(--ok); font-weight: 600; }
 .quiz-result.bad { color: var(--bad); }
 /* feat/missed: note shown when a missed problem is saved to the Missed deck. */
-.quiz-missed-note { margin: 4px 0 0; font-size: 12px; }
-.quiz-foot { margin: 12px 0 0; font-size: 11.5px; font-style: italic; }
+.quiz-missed-note { margin: 6px 0 0; font-size: 12px; }
+.quiz-foot { margin: 14px 0 0; font-size: 11.5px; font-style: italic; }
 /* --- end feat/quiz --- */
 
-/* --- feat/flashcards (TEMPORARY styling, restyle pending). Delete block + flashcards.js + script tag to remove. --- */
+/* --- feat/flashcards: flip-through deck rendered inline in chat + Anki export.
+       Delete this block + flashcards.js + the script tag to remove. --- */
 .flashcard-deck { margin-top: 12px; max-width: 460px; }
 .fc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
 .fc-card {
-  display: block; width: 100%; min-height: 130px; padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.35); border-radius: var(--radius);
+  display: block; width: 100%; min-height: 130px; padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.3); border-radius: var(--radius);
   background: var(--bubble-ai); color: var(--text); font: inherit; font-size: 16px;
   cursor: pointer; text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
 }
+.fc-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16); }
+.fc-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fc-card.back { border-color: var(--accent); background: rgba(56, 189, 248, 0.08); }
-.fc-card:hover { border-color: var(--accent); }
 .fc-face { min-height: 70px; display: flex; align-items: center; justify-content: center; }
 .fc-hint { font-size: 11.5px; margin-top: 8px; }
-.fc-nav { display: flex; gap: 8px; margin-top: 10px; }
+.fc-nav { display: flex; gap: 8px; margin-top: 12px; }
 .fc-nav button {
   padding: 7px 14px; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 8px;
   background: transparent; color: var(--text); font: inherit; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
 }
+.fc-nav button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .fc-nav button:disabled { opacity: 0.4; cursor: default; }
 .fc-nav .fc-export { margin-left: auto; border-color: var(--accent); color: var(--accent); }
-.fc-foot { font-size: 11.5px; margin: 8px 0 0; }
+.fc-foot { font-size: 11.5px; margin: 10px 0 0; }
 
 /* --- feat/flashcards tab: saved deck list --- */
 #flashcards-view { flex: 1; overflow-y: auto; padding: 20px; }

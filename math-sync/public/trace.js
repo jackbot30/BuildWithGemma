@@ -1,4 +1,4 @@
-// Math Sync trace UI — TEMPORARY (teammate restyles). All trace-specific DOM
+// Math Sync trace UI. All trace-specific DOM
 // lives here; app.js only calls into window.msTrace. Semantic markup, no
 // framework, zero external URLs (airplane-mode safe).
 //

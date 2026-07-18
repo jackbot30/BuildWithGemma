@@ -1,4 +1,4 @@
-// feat/quiz: quiz card rendered in chat. TEMPORARY UI (restyle pending).
+// feat/quiz: quiz card rendered inline in the chat stream.
 // All quiz JS lives in this one file; the only hooks elsewhere are one script
 // tag in index.html, a marked CSS block in style.css, and app.js delegating the
 // "quiz" SSE event to window.msQuiz.render. Zero external URLs.

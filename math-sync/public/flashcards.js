@@ -1,5 +1,5 @@
 // feat/flashcards: renders a flip-through flashcard deck in chat + Anki TSV export.
-// TEMPORARY UI (restyle pending). All feature JS lives here; hooks elsewhere are one
+// All feature JS lives here; hooks elsewhere are one
 // script tag in index.html, one case in app.js, one marked CSS block in style.css.
 // Everything local — no CDN/external URLs (airplane-mode requirement).
 
