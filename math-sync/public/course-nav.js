@@ -33,6 +33,8 @@ window.courseNav = {
     pendingLessonId = null;
     return id ?? undefined;
   },
+  // Shared with app.js so finished chat answers render like lessons do.
+  mdToHtml: (md) => mdToHtml(md),
 };
 
 // --- tiny markdown renderer (lessons are trusted local files, but escape anyway) ---

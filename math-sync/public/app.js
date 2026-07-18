@@ -166,11 +166,24 @@ async function ask(message) {
       case "plot":
         addPlot(ev.spec);
         break;
-      case "done":
-        if (ev.text && !answer) bubble.textContent = ev.text;
-        history.push({ role: "assistant", content: answer || ev.text });
+      case "done": {
+        if (ev.text && !answer) answer = ev.text;
+        history.push({ role: "assistant", content: answer });
+        // Streaming shows plain text; once the turn is done, re-render the answer
+        // with the same markdown renderer the lesson viewer uses. Keep any verdict
+        // badge / trace drawer that tool events already attached to the bubble.
+        const md = window.courseNav?.mdToHtml;
+        if (md && answer) {
+          const keep = [...bubble.querySelectorAll(".verdict, .trace-drawer")];
+          bubble.innerHTML = md(answer);
+          bubble.classList.add("md");
+          for (const el of keep) bubble.appendChild(el);
+        } else if (!answer) {
+          bubble.textContent = "";
+        }
         renderMath(bubble);
         break;
+      }
       case "error":
         bubble.textContent = `Error: ${ev.message}`;
         break;
