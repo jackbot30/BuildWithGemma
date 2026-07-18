@@ -25,7 +25,7 @@ window.addEventListener("offline", refreshNetBadge);
 refreshNetBadge();
 
 // --- Theme picker (persisted). ---
-const savedTheme = localStorage.getItem("theme") ?? "slate";
+const savedTheme = localStorage.getItem("theme") ?? "orbit";
 document.documentElement.dataset.theme = savedTheme;
 themeSel.value = savedTheme;
 themeSel.addEventListener("change", () => {
@@ -67,6 +67,27 @@ function syncOrbitStars() {
   void orbitStars.play().catch(() => {}); // CSS starfield covers autoplay refusal
 }
 syncOrbitStars();
+
+// --- Orbit beginning animation: play Leander's star intro once on load, then
+// fade the overlay to reveal the app. Pure presentation — the overlay sits above
+// everything and is removed after ~4.3s; no feature code runs differently. The
+// CSS gradient/wordmark backdrop covers autoplay refusal. Runs only under Orbit. ---
+function runOrbitIntro() {
+  const intro = document.getElementById("orbit-intro");
+  if (!intro || document.documentElement.dataset.theme !== "orbit") return;
+  const video = /** @type {HTMLVideoElement | null} */ (
+    document.getElementById("orbit-intro-video")
+  );
+  void video?.play().catch(() => {});
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const dwell = reduce ? 300 : 2600; // star-screen dwell before the fade
+  window.setTimeout(() => intro.classList.add("fade-out"), dwell);
+  window.setTimeout(() => {
+    intro.classList.add("gone");
+    video?.pause();
+  }, dwell + 1700);
+}
+runOrbitIntro();
 
 // --- Course label ---
 fetch("/api/course")
