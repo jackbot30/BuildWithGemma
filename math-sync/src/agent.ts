@@ -18,7 +18,7 @@ export type AgentEvent =
   | { type: "plot"; spec: PlotSpec }
   | { type: "done"; text: string }
   | { type: "trace"; trace: TurnTrace }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string; detail?: string };
 
 const MAX_ROUNDS = 5;
 // Test knob only: lets smoke tests cap generation cheaply on a shared CPU.
@@ -145,8 +145,15 @@ export async function runAgent(
     emit({ type: "done", text: lastText.trim() || "Reached the tool-round limit without a final answer." });
     finishTrace(trace, "round-cap", emit);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    emit({ type: "error", message });
-    finishTrace(trace, "error", emit, message);
+    const raw = err instanceof Error ? err.message : String(err);
+    // A model-down failure (Ollama offline / connection refused) is the most
+    // likely error on the demo machine — translate it into a friendly, actionable
+    // message and keep the raw text in `detail` for the trace/debugging.
+    const modelDown = /ollama|fetch failed|failed to fetch|ECONNREFUSED|econnrefused|connect/i.test(raw);
+    const message = modelDown
+      ? "The on-device model isn't responding — make sure Ollama is running (ollama serve) and the model is pulled."
+      : raw;
+    emit(modelDown ? { type: "error", message, detail: raw } : { type: "error", message });
+    finishTrace(trace, "error", emit, raw);
   }
 }
