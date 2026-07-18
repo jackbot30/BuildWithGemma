@@ -9,7 +9,7 @@ import type { CoursePack } from "./course.ts";
 import { lookupCourse } from "./course.ts";
 import { checkAnswer, checkSet } from "./checker.ts";
 import { calculateExpression } from "./calc.ts";
-import { validateProblems, createQuiz, toClientView, type QuizClientView } from "./quiz.ts"; // feat/quiz
+import { validateProblems, createQuiz, toClientView, inferType, type QuizClientView } from "./quiz.ts"; // feat/quiz
 
 /** Split a free-form answer ("x=2 or x=3", "2, -2") into bare expressions. */
 function splitAnswers(s: string): string[] {
@@ -190,7 +190,16 @@ const TOOLS: Record<string, Tool> = {
     run: (args, ctx) => {
       const title = asString(args.title, "title").trim() || "Practice quiz";
       if (!Array.isArray(args.problems)) throw new Error("problems must be an array");
-      const { accepted, rejected } = validateProblems(args.problems as unknown[]);
+      // Small Gemma often invents type labels ("multiple choice", "algebraic").
+      // If the expected value itself is gradeable, infer the type instead of failing.
+      const normalized = (args.problems as unknown[]).map((raw) => {
+        if (typeof raw !== "object" || raw === null) return raw;
+        const p = raw as Record<string, unknown>;
+        if ((p.type === "numeric" || p.type === "expression") || typeof p.expected !== "string") return raw;
+        const inferred = inferType(p.expected);
+        return inferred ? { ...p, type: inferred } : raw;
+      });
+      const { accepted, rejected } = validateProblems(normalized);
       const rejectedNote = rejected
         .map((r) => `problem ${r.index + 1}: ${r.reason}`)
         .join("; ");

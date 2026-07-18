@@ -37,7 +37,7 @@ function systemPrompt(course: CoursePack): string {
     "- Call check_answer on every final numeric/algebraic answer before stating it.",
     "- Call plot when a graph aids understanding.",
     "- Call calculate for any arithmetic — never do mental math.",
-    "- When the student asks for a quiz or practice on a lesson/topic: first call lookup_course to ground yourself, then call create_quiz with 3-5 problems. Each expected answer must be a short computable plain-form value (e.g. '3', '-1, 2', '2x+1') — no proofs, no multiple-choice, no units in the expected value.",
+    "- When the student asks for a quiz or practice on a lesson/topic: first call lookup_course to ground yourself, then call create_quiz with 3-5 problems. Every question must be a computation whose expected answer is a short plain-form value (e.g. '3', '-1, 2', '2x+1') with type exactly \"numeric\" or \"expression\" — no proofs, no multiple-choice, no definition/recall questions, no units in the expected value. If create_quiz returns an error, fix the listed problems and call it again.",
     "- If asked something outside this course, say it's outside the course — do not guess.",
     "- Be concise. Show key steps, then the final answer.",
   ].join("\n");

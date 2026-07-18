@@ -4,7 +4,24 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { validateProblems, createQuiz, getQuiz, gradeAnswer } from "./quiz.ts";
+import { validateProblems, createQuiz, getQuiz, gradeAnswer, inferType } from "./quiz.ts";
+
+describe("inferType", () => {
+  // Small Gemma sends made-up type labels ("multiple choice", "algebraic") —
+  // infer a gradeable type from the expected value itself.
+  test("numeric value → numeric", () => {
+    expect(inferType("3")).toBe("numeric");
+    expect(inferType("x = 5")).toBe("numeric"); // leading 'x =' is stripped
+    expect(inferType("-1, 2")).toBe("numeric");
+  });
+  test("symbolic value → expression", () => {
+    expect(inferType("2x+1")).toBe("expression");
+  });
+  test("unparseable → null", () => {
+    expect(inferType("2 +* 3")).toBeNull();
+    expect(inferType("")).toBeNull();
+  });
+});
 
 describe("validateProblems", () => {
   test("accepts a numeric problem whose expected evaluates", () => {

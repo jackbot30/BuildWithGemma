@@ -75,6 +75,20 @@ function partProblem(part: string, type: ProblemType): string | null {
   return null;
 }
 
+/**
+ * Infer a gradeable type from an expected value: "numeric" if every part
+ * evaluates to a finite real, "expression" if every part at least parses,
+ * null if ungradeable. Fallback for small-Gemma made-up type labels
+ * ("multiple choice", "algebraic") when the value itself is fine.
+ */
+export function inferType(expected: string): ProblemType | null {
+  const parts = splitParts(expected);
+  if (parts.length === 0) return null;
+  if (parts.every((p) => partProblem(p, "numeric") === null)) return "numeric";
+  if (parts.every((p) => partProblem(p, "expression") === null)) return "expression";
+  return null;
+}
+
 /** Validate model-supplied problems. Shape AND math are checked — never trust the model. */
 export function validateProblems(problems: readonly unknown[]): ValidationResult {
   const accepted: QuizProblem[] = [];
