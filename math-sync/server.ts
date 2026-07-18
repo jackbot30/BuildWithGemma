@@ -210,14 +210,18 @@ const server = Bun.serve({
   },
 });
 
-setInterval(() => {
-  const idle = hadClient && Date.now() - lastPing > IDLE_EXIT_MS;
-  const neverUsed = !hadClient && Date.now() - startedAt > NEVER_OPENED_EXIT_MS;
-  if (idle || neverUsed) {
-    console.log("No open app windows — shutting down.");
-    process.exit(0);
-  }
-}, 5_000);
+// MATH_SYNC_STAY_ALIVE=1 disables the auto-exit (dev browsing / long sessions);
+// the demo shortcut keeps the default so closing the window stops the server.
+if (process.env.MATH_SYNC_STAY_ALIVE !== "1") {
+  setInterval(() => {
+    const idle = hadClient && Date.now() - lastPing > IDLE_EXIT_MS;
+    const neverUsed = !hadClient && Date.now() - startedAt > NEVER_OPENED_EXIT_MS;
+    if (idle || neverUsed) {
+      console.log("No open app windows — shutting down.");
+      process.exit(0);
+    }
+  }, 5_000);
+}
 
 const url = `http://localhost:${server.port}`;
 console.log(`Math Sync serving at ${url} (model: ${MODEL})`);
