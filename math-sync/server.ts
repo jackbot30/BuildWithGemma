@@ -127,7 +127,6 @@ async function handleChat(req: Request): Promise<Response> {
 async function handleEval(): Promise<Response> {
   // Deterministic self-check demo: verify each answer key against itself (sanity)
   // and expose the problem set. Full with-tools-vs-raw run is eval/run.ts (CLI).
-  // TODO(sat): wire this endpoint to run the model live and return the pass table.
   const file = Bun.file(resolve(import.meta.dir, "eval/problems.json"));
   const data = (await file.json()) as { problems: Array<{ id: string; type: string; answer: unknown }> };
   const selfCheck = data.problems.map((p) => {
