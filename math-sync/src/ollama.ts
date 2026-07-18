@@ -79,6 +79,66 @@ export async function* streamChat(body: ChatBody): AsyncGenerator<OllamaChunk> {
   if (buf.trim()) yield JSON.parse(buf.trim()) as OllamaChunk;
 }
 
+/**
+ * Result of the boot-time reachability probe. Pure/structured so the caller (and
+ * tests) decide what to do — no process.exit lives in here.
+ *  - reachable:    Ollama answered /api/version within the timeout.
+ *  - modelPresent: MODEL was found in /api/tags (best-effort; false if tags failed).
+ *  - shouldExit:   true only when Ollama is unreachable (a missing model is a warning).
+ *  - message:      an operator-actionable line to print.
+ */
+export interface OllamaReachability {
+  reachable: boolean;
+  modelPresent: boolean;
+  shouldExit: boolean;
+  message: string;
+}
+
+type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
+
+/**
+ * Probe Ollama at boot: short-timeout GET /api/version, then GET /api/tags to see
+ * whether MODEL is pulled. Never throws — always resolves to an OllamaReachability.
+ * `fetchFn` is injectable so this is unit-testable without a live Ollama.
+ */
+export async function assertOllamaReachable(
+  fetchFn: FetchFn = globalThis.fetch,
+  timeoutMs = 2500,
+): Promise<OllamaReachability> {
+  const pullHint = `Ollama not reachable at ${OLLAMA_URL} — run \`ollama serve\` and \`ollama pull ${MODEL}\``;
+
+  let versionOk = false;
+  try {
+    const res = await fetchFn(`${OLLAMA_URL}/api/version`, { signal: AbortSignal.timeout(timeoutMs) });
+    versionOk = res.ok;
+  } catch {
+    versionOk = false;
+  }
+
+  if (!versionOk) {
+    return { reachable: false, modelPresent: false, shouldExit: true, message: pullHint };
+  }
+
+  // Reachable — best-effort model check. A tags failure must NOT block boot.
+  let modelPresent = false;
+  try {
+    const res = await fetchFn(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (res.ok) {
+      const data = (await res.json()) as { models?: Array<{ name?: string; model?: string }> };
+      const tags = data.models ?? [];
+      modelPresent = tags.some((m) => m.name === MODEL || m.model === MODEL);
+    }
+  } catch {
+    modelPresent = false;
+  }
+
+  const message = modelPresent
+    ? `Ollama reachable at ${OLLAMA_URL}; model ${MODEL} is available.`
+    : `WARNING: Ollama is up at ${OLLAMA_URL} but model ${MODEL} is not pulled — run \`ollama pull ${MODEL}\` (the first turn will fail otherwise).`;
+
+  return { reachable: true, modelPresent, shouldExit: false, message };
+}
+
 /** Fire-and-forget load so the model is resident before the first user turn. */
 export async function prewarm(): Promise<void> {
   try {

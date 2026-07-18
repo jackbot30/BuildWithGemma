@@ -13,7 +13,7 @@ import { existsSync } from "node:fs";
 import { loadCourse } from "./src/course.ts";
 import { buildOutline } from "./src/outline.ts"; // course-nav (feat/course-nav)
 import { runAgent, type AgentEvent } from "./src/agent.ts";
-import { prewarm, MODEL, type OllamaMessage } from "./src/ollama.ts";
+import { prewarm, MODEL, assertOllamaReachable, type OllamaMessage } from "./src/ollama.ts";
 import { checkAnswer, checkSet } from "./src/checker.ts";
 import { detectComposerIntent } from "./src/intent.ts"; // feat/flashcards + feat/quiz
 
@@ -60,6 +60,12 @@ if (existing?.status === 204) {
   console.log(`Math Sync already running on port ${PORT}.`);
   process.exit(0);
 }
+
+// Fail loudly if Ollama isn't reachable: the whole value prop is on-device inference,
+// and a silent first-turn hang mid-demo is far worse than a clear message at boot.
+const ollama = await assertOllamaReachable();
+console.log(ollama.message);
+if (ollama.shouldExit) process.exit(1);
 
 // Load the course pack once at boot (COURSE_DIR overrides; defaults to sample-course).
 const course = await loadCourse();
