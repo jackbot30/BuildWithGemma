@@ -25,8 +25,34 @@ function toAnkiTsv(cards) {
   return cards.map((c) => `${clean(c.front)}\t${clean(c.back)}`).join("\n");
 }
 
-function render(bubble, deck) {
-  if (!deck?.cards?.length) return;
+// --- saved decks (localStorage; local machine only, consistent with "nothing leaves") ---
+const STORE_KEY = "ms-flashcard-decks";
+const MAX_DECKS = 20;
+
+function loadDecks() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) ?? "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDeck(deck) {
+  const decks = loadDecks();
+  decks.unshift({ ...deck, savedAt: new Date().toISOString() });
+  localStorage.setItem(STORE_KEY, JSON.stringify(decks.slice(0, MAX_DECKS)));
+}
+
+function deleteDeck(index) {
+  const decks = loadDecks();
+  decks.splice(index, 1);
+  localStorage.setItem(STORE_KEY, JSON.stringify(decks));
+}
+
+/** Build the flip-deck DOM (used both inline in chat and in the Flashcards tab). */
+function buildDeck(deck) {
+  if (!deck?.cards?.length) return null;
   let i = 0;
   let showingBack = false;
 
@@ -105,8 +131,64 @@ function render(bubble, deck) {
   });
 
   box.append(head, card, nav, foot);
-  bubble.appendChild(box);
   show();
+  return box;
 }
 
-window.msFlashcards = { render };
+/** Chat entry point: render inline under the assistant bubble AND save to the tab. */
+function render(bubble, deck) {
+  const box = buildDeck(deck);
+  if (!box) return;
+  saveDeck(deck);
+  bubble.appendChild(box);
+}
+
+/** Flashcards tab: list saved decks, newest first; open/export/delete per deck. */
+function renderList() {
+  const listEl = document.getElementById("fc-deck-list");
+  if (!listEl) return;
+  const decks = loadDecks();
+  listEl.textContent = "";
+  if (decks.length === 0) {
+    listEl.textContent = "No decks yet — ask in chat: \"create flashcards for lesson 1.1\".";
+    return;
+  }
+  decks.forEach((deck, index) => {
+    const row = document.createElement("div");
+    row.className = "fc-deck-row";
+    const head = document.createElement("div");
+    head.className = "fc-row-head";
+    const label = document.createElement("button");
+    label.type = "button";
+    label.className = "fc-row-open";
+    const when = deck.savedAt ? new Date(deck.savedAt).toLocaleString() : "";
+    label.innerHTML = `<strong></strong> <span class="muted"></span>`;
+    label.querySelector("strong").textContent = deck.title;
+    label.querySelector("span").textContent = `· ${deck.cards.length} cards${when ? ` · ${when}` : ""}`;
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "fc-row-del";
+    del.textContent = "✕";
+    del.setAttribute("aria-label", `Delete deck ${deck.title}`);
+    head.append(label, del);
+    row.appendChild(head);
+
+    let opened = null;
+    label.addEventListener("click", () => {
+      if (opened) {
+        opened.remove();
+        opened = null;
+        return;
+      }
+      opened = buildDeck(deck);
+      if (opened) row.appendChild(opened);
+    });
+    del.addEventListener("click", () => {
+      deleteDeck(index);
+      renderList();
+    });
+    listEl.appendChild(row);
+  });
+}
+
+window.msFlashcards = { render, renderList };

@@ -323,16 +323,19 @@ let evidenceLoaded = false;
 const traceView = document.getElementById("trace-view"); // feat/trace
 
 function showView(view) {
-  const isChat = view !== "evidence" && view !== "calculator" && view !== "trace";
+  const isChat = view !== "evidence" && view !== "calculator" && view !== "trace" && view !== "flashcards";
   chat.hidden = !isChat;
   composer.hidden = !isChat;
   if (evidenceView) evidenceView.hidden = view !== "evidence";
   const calculatorView = document.getElementById("calculator"); // feat/calculator
   if (calculatorView) calculatorView.hidden = view !== "calculator";
   if (traceView) traceView.hidden = view !== "trace"; // feat/trace
+  const flashcardsView = document.getElementById("flashcards-view"); // feat/flashcards
+  if (flashcardsView) flashcardsView.hidden = view !== "flashcards";
   for (const t of tabs) t.setAttribute("aria-selected", String(t.dataset.view === view));
   if (view === "evidence" && !evidenceLoaded) loadEvidence();
   if (view === "trace") window.msTrace?.loadTraceList(); // feat/trace — refresh each visit
+  if (view === "flashcards") window.msFlashcards?.renderList(); // feat/flashcards — refresh each visit
 }
 
 for (const t of tabs) t.addEventListener("click", () => showView(t.dataset.view ?? "chat"));

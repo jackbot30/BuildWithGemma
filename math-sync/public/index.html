@@ -20,6 +20,7 @@
       <nav class="tabs" aria-label="View">
         <button type="button" class="tab" data-view="chat" aria-selected="true">Chat</button>
         <button type="button" class="tab" data-view="calculator" aria-selected="false">Calculator</button>
+        <button type="button" class="tab" data-view="flashcards" aria-selected="false">Flashcards</button>
         <button type="button" class="tab" data-view="evidence" aria-selected="false">Evidence</button>
         <button type="button" class="tab" data-view="trace" aria-selected="false">Trace</button>
       </nav>
@@ -113,6 +114,19 @@
         </p>
       </div>
       <div id="trace-list">loading traces…</div>
+    </section>
+
+    <!-- feat/flashcards: saved decks section. Delete + tab button + flashcards.js to remove. -->
+    <section id="flashcards-view" hidden aria-live="polite">
+      <div class="evidence-head">
+        <h1>Flashcards</h1>
+        <p class="muted">
+          Every deck Gemma makes for you is saved here (locally, on this machine).
+          Ask in chat: <code>"create flashcards for lesson 1.1"</code>. Export imports
+          straight into Anki (File → Import, tab-separated).
+        </p>
+      </div>
+      <div id="fc-deck-list">No decks yet.</div>
     </section>
 
     <form id="composer">

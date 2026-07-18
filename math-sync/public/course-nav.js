@@ -119,6 +119,8 @@ function showLessonView() {
   if (calculatorEl) calculatorEl.hidden = true;
   const traceEl = document.getElementById("trace-view");
   if (traceEl) traceEl.hidden = true;
+  const fcEl = document.getElementById("flashcards-view");
+  if (fcEl) fcEl.hidden = true;
   if (lessonView) lessonView.hidden = false;
   for (const t of document.querySelectorAll(".tab")) t.setAttribute("aria-selected", "false");
 }
