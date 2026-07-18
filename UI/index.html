@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>College Algebra · Orbit</title>
+<link rel="stylesheet" href="style.css">
+<!-- KaTeX comes from the math-sync backend's vendored copy via the proxy;
+     when the backend is down these 404 quietly and math shows as plain text. -->
+<link rel="stylesheet" href="/vendor/katex/katex.min.css">
+<script defer src="/vendor/katex/katex.min.js"></script>
+<script defer src="/vendor/katex/contrib/auto-render.min.js"></script>
+</head>
+<body class="preflight">
+
+  <!-- Star video: intro background, then reused as the 0.5s warp between pages -->
+  <div id="starWrap">
+    <video id="starVideo" src="assets/stars.mp4" muted playsinline preload="auto"></video>
+  </div>
+
+  <div id="app">
+    <main id="view" class="slide-up"></main>
+  </div>
+
+  <!-- Mission Control dock: tutor + games, floating bottom right -->
+  <div class="dock-float slide-right">
+    <div class="dock-label">
+      <b>Gemma</b>
+      <span>ask · quiz</span>
+    </div>
+    <button id="teacherBtn" class="btn btn-gold">Chat</button>
+    <button id="gamesBtn" class="btn">Games!</button>
+  </div>
+
+  <div class="tools-float slide-bottom">
+    <div class="tools-anchor">
+      <button id="toolsBtn" class="btn btn-ghost">Tools</button>
+      <div id="toolsMenu" class="tools-menu hidden">
+        <button id="syncBtn">Sync with BYU</button>
+        <button id="calcBtn">Calculator</button>
+        <button id="formulaBtn">Formula sheet</button>
+        <button id="resetBtn">Reset progress</button>
+      </div>
+    </div>
+    <span class="sync-note" id="syncNote"></span>
+  </div>
+
+  <!-- Gemma chat drawer -->
+  <div id="chatDrawer" class="chat-drawer">
+    <div class="chat-head">
+      <div>
+        <h2>Course tutor</h2>
+        <span id="chatModel">math-sync</span>
+      </div>
+      <button id="chatClose" class="icon-btn" aria-label="Close chat">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div id="chatLog" class="chat-log"></div>
+    <form id="chatForm" class="chat-form">
+      <input id="chatInput" type="text" placeholder="Ask about your stats" autocomplete="off">
+      <button type="submit" class="btn">Send</button>
+    </form>
+  </div>
+
+  <!-- Formula sheet modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modalTitle">Formula sheet</h2>
+        <button id="modalClose" class="icon-btn" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
