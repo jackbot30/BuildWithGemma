@@ -1,0 +1,39 @@
+# Dependencies / build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COPYRIGHTED COURSE CONTENT — never commit. See course-pack/README.md.
+# The real course pack (syllabus, 100 lessons, eval questions, raw provenance)
+# is personal study material. It lives here locally so the app is self-contained,
+# but every file under course-pack/ is excluded from git EXCEPT the explanation.
+# ─────────────────────────────────────────────────────────────────────────────
+/course-pack/*
+!/course-pack/README.md
+
+# Derived-from-content artifacts (would reconstitute the copyrighted text)
+/store/
+/index/
+*.sqlite
+*.sqlite-*
+vectors.json
+/pulled/
+/.cache/
+
+# Eval run outputs may quote answers — keep local unless you've reviewed them
+/eval-results/
+
+# Model weights (Gemma runs via Ollama; never vendored here)
+*.gguf
