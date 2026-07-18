@@ -9,6 +9,7 @@
 import { resolve, join, basename } from "node:path";
 import { readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { scoreLessons } from "./lookup.ts";
 
 export interface Lesson {
   id: string; // filename without extension, e.g. "01-linear-equations"
@@ -46,36 +47,21 @@ export async function loadCourse(dir?: string): Promise<CoursePack> {
 }
 
 /**
- * lookup_course tool body: naive but effective keyword retrieval over the pack.
- * TODO(sat): rank by term frequency / return the most relevant lesson section
- * instead of whole files if context gets tight.
+ * lookup_course tool body: improved keyword retrieval over the pack.
+ * Uses the scoring logic in lookup.ts (S3): id/title-weighted, TF, length-normalized.
  */
 export function lookupCourse(pack: CoursePack, query: string): string {
-  // Keyword scoring, not whole-phrase substring — "solve quadratic equations"
-  // should still match a lesson that says "quadratic".
-  const tokens = (query.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length > 2);
-  const score = (text: string): number => {
-    const lc = text.toLowerCase();
-    return tokens.reduce((n, t) => n + (lc.includes(t) ? 1 : 0), 0);
-  };
+  const ranked = scoreLessons(pack.lessons, query);
 
-  const sections = [
-    { title: "syllabus", content: pack.syllabus },
-    ...pack.lessons.map((l) => ({ title: l.title, content: l.content })),
-  ]
-    .map((s) => ({ ...s, s: score(`${s.title}\n${s.content}`) }))
-    .filter((s) => s.s > 0)
-    .sort((a, b) => b.s - a.s);
-
-  if (sections.length === 0) {
+  if (ranked.length === 0) {
     return `No course material matched "${query}". Available lessons: ${pack.lessons
       .map((l) => l.title)
       .join("; ")}.`;
   }
-  // Return the top couple of sections, capped so we don't blow the context window.
-  return sections
+  // Return the top couple of lessons, capped to avoid blowing the context window.
+  return ranked
     .slice(0, 2)
-    .map((s) => `## From ${s.title}\n\n${s.content}`)
+    .map((l) => `## From ${l.title}\n\n${l.content}`)
     .join("\n\n---\n\n")
     .slice(0, 6000);
 }
