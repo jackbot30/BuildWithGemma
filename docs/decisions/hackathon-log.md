@@ -181,3 +181,36 @@ due reviews → capped new). All state lives in localStorage with the decks — 
 server surface, zero risk to the demo path, consistent with "nothing leaves the
 machine." Not implemented on purpose: fuzz intervals, custom deck options, sibling
 burying — demo-day scope.
+
+## 2026-07-18 · Four demo-impact UI features, priority-ordered with a gate per push
+
+Shipped in strict priority order, each gated (`bun test` all-green + `bunx tsc
+--noEmit`) and pushed before the next, so an earlier item is always committed if
+time runs out. All four are client-side only — no server surface, no external URLs
+— keeping the demo path and the offline guarantee untouched.
+
+1. **Missed quiz questions → SRS deck (the loop-closer).** A problem the student
+   needed 3+ attempts on (the 3rd-fail reveal, or a pass only after 2+ failures)
+   becomes a flashcard in a find-or-created **"Missed questions"** deck, deduped by
+   front text, carrying no `srs` state so it surfaces as *new* in the next study
+   session. The decide/build/find-or-create+dedupe logic is a pure, DOM-free module
+   (`public/missed.js`) red/green-tested in `src/missed.test.ts` (16 tests); `quiz.js`
+   keys off the existing `/api/quiz/answer` reveal contract (attempts + `expected`,
+   already proven in `quiz.test.ts`) and writes through `flashcards.js`'s store
+   (`loadDecks`/`persistDecks` newly exposed) so there's one `STORE_KEY`.
+
+2. **Live tok/s in the progress strip.** The exact per-turn number only arrives in
+   the end-of-turn `trace` event, so we estimate live from delta-event count /
+   elapsed since the first delta (updated ≤2×/sec, hidden until 2s elapsed to avoid
+   junk), then **snap** to the exact `tokensPerSec` when the trace lands and the
+   strip's still up. Honesty rule: the estimate is marked `~`, the exact value isn't.
+
+3. **Verification badge visible from the back of the room.** The `verify_solution`
+   verdict gets larger type + a one-shot ~1.2s CSS glow/pulse (glow via
+   `currentColor` → green ✓ / red ✗), settling to the base `.verdict` style;
+   `prefers-reduced-motion` disables it. **Wording unchanged** ("verified by
+   substitution — deterministic, not the model") — that claim was chosen deliberately.
+
+4. **Airplane-moment banner.** The window `offline` event shows a brief (~4s,
+   CSS-animated) "✈ Offline — everything still works." banner atop the chat;
+   reconnecting stays quiet on purpose. The existing net-badge behavior is untouched.
