@@ -19,6 +19,7 @@
       </div>
       <nav class="tabs" aria-label="View">
         <button type="button" class="tab" data-view="chat" aria-selected="true">Chat</button>
+        <button type="button" class="tab" data-view="calculator" aria-selected="false">Calculator</button>
         <button type="button" class="tab" data-view="evidence" aria-selected="false">Evidence</button>
       </nav>
       <div class="controls">
@@ -52,11 +53,41 @@
       <div id="eval-runs" class="eval-runs">loading results…</div>
     </section>
 
+<!-- BEGIN calculator view (feat/calculator) — TEMPORARY UI, restyle pass tomorrow.
+     All logic lives in /calculator.js; delete this section + that script tag to remove. -->
+    <section id="calculator" hidden aria-label="Calculator">
+      <div class="calc-col">
+        <h1>Calculator</h1>
+        <p class="muted">Scientific expressions via mathjs — e.g. <code>sqrt(3^2 + 4^2)</code>, <code>sin(pi/6)</code>, <code>log(100, 10)</code>.</p>
+        <form id="calc-form">
+          <input id="calc-input" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="e.g. (-5 + sqrt(25 - 24)) / 2" aria-label="Expression" />
+          <button type="submit">=</button>
+        </form>
+        <ol id="calc-history" reversed aria-label="Calculation history"></ol>
+      </div>
+      <div class="calc-col">
+        <h1>Grapher</h1>
+        <p class="muted">Type a function of <code>x</code>; range is optional.</p>
+        <form id="graph-form">
+          <input id="graph-fn" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="f(x), e.g. x^2 - 5x + 6" aria-label="Function of x" />
+          <input id="graph-min" type="number" step="any" placeholder="min (-10)" aria-label="x minimum" />
+          <input id="graph-max" type="number" step="any" placeholder="max (10)" aria-label="x maximum" />
+          <button type="submit">Plot</button>
+        </form>
+        <p id="graph-error" class="calc-error" role="alert" hidden></p>
+        <div id="graph-target" class="plot" hidden></div>
+      </div>
+    </section>
+<!-- END calculator view -->
+
     <form id="composer">
       <input id="input" type="text" autocomplete="off" placeholder="e.g. Solve x^2 - 5x + 6 = 0" />
       <button id="send" type="submit">Ask</button>
     </form>
 
     <script type="module" src="/app.js"></script>
+    <script type="module" src="/calculator.js"></script>
   </body>
 </html>
