@@ -3,8 +3,11 @@
 // script tag in index.html, one case in app.js, one marked CSS block in style.css.
 // Everything local — no CDN/external URLs (airplane-mode requirement).
 
-/** @typedef {{ front: string, back: string }} Flashcard */
+/** @typedef {{ front: string, back: string, srs?: object }} Flashcard */
 /** @typedef {{ title: string, cards: Flashcard[] }} FlashcardDeck */
+
+// feat/srs: Anki-style scheduler (pure module, tested in src/srs.test.ts).
+import { newCardState, grade, buildQueue, previewIntervals } from "/srs.js";
 
 function renderMathIn(el) {
   if (window.renderMathInElement) {
@@ -48,6 +51,15 @@ function deleteDeck(index) {
   const decks = loadDecks();
   decks.splice(index, 1);
   localStorage.setItem(STORE_KEY, JSON.stringify(decks));
+}
+
+function persistDecks(decks) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(decks));
+}
+
+/** Count cards a study session would show right now (due learning/review + new). */
+function dueCount(deck, now) {
+  return buildQueue(deck.cards, now, 20).length;
 }
 
 /** Build the flip-deck DOM (used both inline in chat and in the Flashcards tab). */
@@ -143,6 +155,101 @@ function render(bubble, deck) {
   bubble.appendChild(box);
 }
 
+/**
+ * feat/srs: study session UI (Anki-style). Renders into `host`, works through the
+ * due queue with Again/Hard/Good/Easy, persists scheduling after every grade.
+ */
+function startStudy(host, decks, deckIndex) {
+  const deck = decks[deckIndex];
+  const now = Date.now();
+  const queue = buildQueue(deck.cards, now, 20);
+  host.textContent = "";
+  if (queue.length === 0) {
+    const p = document.createElement("p");
+    p.className = "muted";
+    p.textContent = "Nothing due in this deck right now. 🎉";
+    host.appendChild(p);
+    return;
+  }
+
+  const box = document.createElement("div");
+  box.className = "study-box";
+  const progress = document.createElement("div");
+  progress.className = "muted study-progress";
+  const face = document.createElement("div");
+  face.className = "study-face";
+  const showBtn = document.createElement("button");
+  showBtn.type = "button";
+  showBtn.className = "study-show";
+  showBtn.textContent = "Show answer";
+  const grades = document.createElement("div");
+  grades.className = "study-grades";
+  grades.hidden = true;
+  box.append(progress, face, showBtn, grades);
+  host.appendChild(box);
+
+  let i = 0;
+  let reviewed = 0;
+
+  function renderMathIn2(el) {
+    if (window.renderMathInElement) {
+      window.renderMathInElement(el, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+        ],
+        throwOnError: false,
+      });
+    }
+  }
+
+  function showCard() {
+    if (i >= queue.length) {
+      box.textContent = "";
+      const doneMsg = document.createElement("p");
+      doneMsg.textContent = `Session done — ${reviewed} card${reviewed === 1 ? "" : "s"} reviewed. Scheduling saved.`;
+      box.appendChild(doneMsg);
+      return;
+    }
+    const card = queue[i];
+    progress.textContent = `${i + 1} / ${queue.length}${card.srs ? "" : " · new card"}`;
+    face.textContent = card.front;
+    renderMathIn2(face);
+    showBtn.hidden = false;
+    grades.hidden = true;
+  }
+
+  showBtn.addEventListener("click", () => {
+    const card = queue[i];
+    face.textContent = `${card.front}\n\n— \n\n${card.back}`;
+    face.innerHTML = face.innerHTML.replace(/\n/g, "<br />");
+    renderMathIn2(face);
+    showBtn.hidden = true;
+    grades.hidden = false;
+    grades.textContent = "";
+    const previews = previewIntervals(card.srs, Date.now());
+    for (const rating of ["again", "hard", "good", "easy"]) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = `study-grade study-${rating}`;
+      b.innerHTML = `${rating[0].toUpperCase()}${rating.slice(1)}<br /><span class="muted">${previews[rating]}</span>`;
+      b.addEventListener("click", () => {
+        const nowMs = Date.now();
+        card.srs = grade(card.srs ?? newCardState(nowMs), rating, nowMs);
+        persistDecks(decks);
+        reviewed++;
+        // "Again"/"Hard" in learning re-queue the card at the end of this session.
+        if (card.srs.phase === "learning" && (rating === "again" || rating === "hard")) queue.push(card);
+        i++;
+        showCard();
+      });
+      grades.appendChild(b);
+    }
+  });
+
+  showCard();
+}
+
 /** Flashcards tab: list saved decks, newest first; open/export/delete per deck. */
 function renderList() {
   const listEl = document.getElementById("fc-deck-list");
@@ -165,12 +272,19 @@ function renderList() {
     label.innerHTML = `<strong></strong> <span class="muted"></span>`;
     label.querySelector("strong").textContent = deck.title;
     label.querySelector("span").textContent = `· ${deck.cards.length} cards${when ? ` · ${when}` : ""}`;
+    // feat/srs: study session with Anki-style scheduling.
+    const study = document.createElement("button");
+    study.type = "button";
+    study.className = "fc-row-study";
+    const due = dueCount(deck, Date.now());
+    study.textContent = due > 0 ? `Study (${due})` : "Study";
+    study.disabled = due === 0;
     const del = document.createElement("button");
     del.type = "button";
     del.className = "fc-row-del";
     del.textContent = "✕";
     del.setAttribute("aria-label", `Delete deck ${deck.title}`);
-    head.append(label, del);
+    head.append(label, study, del);
     row.appendChild(head);
 
     let opened = null;
@@ -182,6 +296,16 @@ function renderList() {
       }
       opened = buildDeck(deck);
       if (opened) row.appendChild(opened);
+    });
+    study.addEventListener("click", () => {
+      if (opened) {
+        opened.remove();
+        opened = null;
+      }
+      const host = document.createElement("div");
+      row.appendChild(host);
+      opened = host;
+      startStudy(host, decks, index);
     });
     del.addEventListener("click", () => {
       deleteDeck(index);
